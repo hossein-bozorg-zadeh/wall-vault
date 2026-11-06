@@ -1,0 +1,1380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WallVault — High-Resolution Wallpapers</title>
+<meta name="description" content="A curated + web-gathered library of high-resolution wallpapers. Search, filter, favorite, preview and download in 4K.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236d5cff'/%3E%3Cpath d='M24 72 40 30l14 26 12-16 10 32z' fill='%23fff'/%3E%3Ccircle cx='66' cy='30' r='8' fill='%23ffd166'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0b0d12; --bg2:#11141b; --card:#171b24; --card-hover:#1d2230;
+  --line:#242a38; --text:#e8ebf3; --muted:#8b93a7; --accent:#6d5cff; --accent2:#22d3ee;
+  --danger:#f43f5e; --shadow:0 10px 30px rgba(0,0,0,.45); --radius:14px;
+}
+html[data-theme="light"]{
+  --bg:#f5f6fa; --bg2:#ffffff; --card:#ffffff; --card-hover:#f2f4fb;
+  --line:#e4e7f0; --text:#171a23; --muted:#66708a;
+  --shadow:0 10px 30px rgba(30,40,80,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--bg); color:var(--text); min-height:100vh;
+  transition:background .25s,color .25s;
+}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input{font:inherit}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
+img{display:block}
+
+/* ---------- header ---------- */
+header{
+  position:sticky;top:0;z-index:50;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);
+  backdrop-filter:blur(14px);
+  border-bottom:1px solid var(--line);
+}
+.header-inner{
+  max-width:1500px;margin:0 auto;padding:.8rem 1.2rem;
+  display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;
+}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.15rem;letter-spacing:-.02em;cursor:pointer}
+.brand .logo{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:grid;place-items:center;font-size:1rem;
+  box-shadow:0 4px 14px rgba(109,92,255,.4);
+}
+.searchbox{
+  flex:1 1 260px;max-width:560px;position:relative;display:flex;align-items:center;
+}
+.searchbox svg{position:absolute;left:.85rem;width:18px;height:18px;color:var(--muted);pointer-events:none}
+.searchbox input{
+  width:100%;padding:.65rem 2.2rem .65rem 2.5rem;border-radius:12px;
+  border:1px solid var(--line);background:var(--bg2);color:var(--text);
+  outline:none;transition:border .2s, box-shadow .2s;
+}
+.searchbox input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(109,92,255,.18)}
+.searchbox .clear-q{
+  position:absolute;right:.55rem;color:var(--muted);font-size:1.05rem;
+  display:none;padding:2px 6px;border-radius:8px;
+}
+.searchbox .clear-q:hover{background:var(--card);color:var(--text)}
+.header-actions{display:flex;gap:.4rem;margin-left:auto}
+.icon-btn{
+  width:40px;height:40px;border-radius:11px;display:grid;place-items:center;
+  border:1px solid var(--line);background:var(--bg2);transition:.2s;position:relative;
+}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-1px)}
+.icon-btn svg{width:19px;height:19px}
+.icon-btn .badge{
+  position:absolute;top:-6px;right:-6px;background:var(--accent);color:#fff;
+  font-size:.62rem;font-weight:700;min-width:17px;height:17px;border-radius:9px;
+  display:grid;place-items:center;padding:0 4px;box-shadow:0 2px 6px rgba(0,0,0,.3);
+}
+
+/* ---------- filter bar ---------- */
+.filterbar{
+  max-width:1500px;margin:0 auto;padding:.9rem 1.2rem .2rem;
+  display:flex;flex-direction:column;gap:.65rem;
+}
+.chips-row{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+.chip{
+  padding:.42rem .85rem;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);font-size:.82rem;color:var(--muted);transition:.18s;white-space:nowrap;
+}
+.chip:hover{color:var(--text);border-color:var(--muted);transform:translateY(-1px)}
+.chip.active{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+.color-dot{
+  width:26px;height:26px;border-radius:50%;border:2px solid transparent;
+  cursor:pointer;transition:.18s;flex:0 0 auto;padding:0;
+}
+.color-dot:hover{transform:scale(1.15)}
+.color-dot.active{border-color:var(--text);transform:scale(1.12)}
+.row-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;color:var(--muted);text-transform:uppercase;margin-right:.3rem;flex:0 0 auto}
+.seg{
+  display:inline-flex;border:1px solid var(--line);border-radius:999px;
+  background:var(--card);padding:3px;gap:2px;
+}
+.seg button{padding:.35rem .8rem;border-radius:999px;font-size:.8rem;color:var(--muted);transition:.18s}
+.seg button.active{background:var(--accent);color:#fff;font-weight:600}
+
+/* ---------- main grid ---------- */
+main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
+.results-head{
+  display:flex;align-items:baseline;gap:.8rem;margin:.6rem 0 1rem;flex-wrap:wrap;
+}
+.results-head h2{font-size:1.25rem;letter-spacing:-.02em}
+.results-head .count{color:var(--muted);font-size:.85rem}
+.results-head .spacer{flex:1}
+.btn{
+  padding:.5rem 1rem;border-radius:11px;border:1px solid var(--line);
+  background:var(--card);font-size:.85rem;font-weight:600;transition:.2s;display:inline-flex;align-items:center;gap:.45rem;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.12);color:#fff}
+.grid{
+  columns:6 250px;column-gap:14px;
+}
+.card{
+  break-inside:avoid;margin-bottom:14px;position:relative;border-radius:var(--radius);
+  overflow:hidden;background:var(--card);cursor:pointer;
+  box-shadow:0 3px 10px rgba(0,0,0,.25);transition:transform .2s, box-shadow .2s;
+}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card img{width:100%;opacity:0;transition:opacity .4s}
+.card img.loaded{opacity:1}
+.card .shimmer{
+  position:absolute;inset:0;min-height:180px;
+  background:linear-gradient(100deg,var(--card) 30%,var(--card-hover) 50%,var(--card) 70%);
+  background-size:200% 100%;animation:sh 1.2s infinite linear;
+}
+@keyframes sh{0%{background-position:120% 0}100%{background-position:-80% 0}}
+.card .overlay{
+  position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;
+  opacity:0;transition:opacity .25s;pointer-events:none;
+  background:linear-gradient(180deg,transparent 40%,rgba(6,8,14,.72));
+}
+.card:hover .overlay{opacity:1}
+.card .overlay .info{padding:.7rem .8rem;pointer-events:none}
+.card .t{font-size:.82rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .a{font-size:.72rem;color:#c6ccdd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card .src{font-size:.62rem;font-weight:700;letter-spacing:.05em;color:var(--accent2);text-transform:uppercase}
+.card-actions{position:absolute;top:.6rem;right:.6rem;display:flex;gap:.4rem;opacity:0;transition:.25s}
+.card:hover .card-actions{opacity:1}
+.mini-btn{
+  width:32px;height:32px;border-radius:9px;display:grid;place-items:center;
+  background:rgba(10,12,20,.65);backdrop-filter:blur(6px);color:#fff;transition:.18s;
+  border:1px solid rgba(255,255,255,.12);
+}
+.mini-btn:hover{background:var(--accent)}
+.mini-btn svg{width:15px;height:15px}
+.mini-btn.faved{background:var(--danger);border-color:var(--danger)}
+.res-tag{
+  position:absolute;bottom:.6rem;right:.6rem;font-size:.62rem;font-weight:700;
+  background:rgba(10,12,20,.65);backdrop-filter:blur(6px);color:#dfe3ee;
+  padding:.2rem .45rem;border-radius:6px;opacity:0;transition:.25s;
+}
+.card:hover .res-tag{opacity:1}
+.skeleton-note{display:none}
+
+/* ---------- empty / loader / footer ---------- */
+.empty{
+  text-align:center;padding:5rem 1rem;color:var(--muted);
+}
+.empty .big{font-size:2.4rem;margin-bottom:.6rem}
+.empty h3{color:var(--text);margin-bottom:.4rem}
+.loader{
+  display:none;justify-content:center;padding:2.2rem;gap:10px;align-items:center;color:var(--muted);font-size:.85rem;
+}
+.loader.on{display:flex}
+.spinner{
+  width:22px;height:22px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--accent);
+  animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-more-wrap{display:flex;justify-content:center;padding:1.5rem 0 0}
+
+/* ---------- modal (detail) ---------- */
+.modal{position:fixed;inset:0;z-index:100;display:none}
+.modal.open{display:block}
+.modal .backdrop{position:absolute;inset:0;background:rgba(4,6,12,.78);backdrop-filter:blur(8px)}
+.sheet{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:min(1100px,94vw);height:min(700px,90vh);background:var(--bg2);
+  border:1px solid var(--line);border-radius:20px;display:flex;overflow:hidden;box-shadow:var(--shadow);
+}
+.sheet .img-side{flex:1.5;position:relative;background:#000;display:grid;place-items:center;overflow:hidden}
+.sheet .img-side img{max-width:100%;max-height:100%;object-fit:contain}
+.sheet .img-side .strip{
+  position:absolute;bottom:0;left:0;right:0;padding:.8rem 1rem;display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.7));
+}
+.sheet .side{
+  width:330px;flex:0 0 330px;border-left:1px solid var(--line);
+  padding:1.3rem;display:flex;flex-direction:column;gap:1rem;overflow-y:auto;background:var(--bg2);
+}
+.sheet h3{font-size:1.05rem;line-height:1.35;letter-spacing:-.01em}
+.sheet .meta{font-size:.8rem;color:var(--muted);line-height:1.7}
+.sheet .meta b{color:var(--text);font-weight:600}
+.src-pill{
+  display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+  padding:.25rem .55rem;border-radius:6px;background:rgba(109,92,255,.15);color:var(--accent);
+}
+.color-swatch{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted)}
+.color-swatch .sw{width:20px;height:20px;border-radius:6px;border:1px solid var(--line)}
+.dl-grid{display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.dl-grid .btn{justify-content:center;font-size:.78rem;padding:.55rem .4rem}
+.section-label{font-size:.7rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.side-actions{display:flex;gap:.5rem}
+.side-actions .btn{flex:1;justify-content:center;padding:.55rem .5rem;font-size:.82rem}
+.close-x{
+  position:absolute;top:.8rem;right:.8rem;z-index:5;width:36px;height:36px;border-radius:10px;
+  background:rgba(10,12,20,.6);color:#fff;display:grid;place-items:center;font-size:1.05rem;backdrop-filter:blur(6px);
+}
+.close-x:hover{background:var(--danger)}
+
+/* ---------- preview overlay ---------- */
+.preview-sheet{
+  position:absolute;inset:0;background:var(--bg2);display:none;flex-direction:column;z-index:6;
+}
+.preview-sheet.open{display:flex}
+.pv-stage{
+  flex:1;display:grid;place-items:center;padding:1.5rem;overflow:hidden;
+  background:
+    radial-gradient(1200px 500px at 50% -10%,rgba(109,92,255,.13),transparent);
+}
+.device{
+  position:relative;border-radius:38px;border:10px solid #101319;outline:1px solid rgba(255,255,255,.09);
+  overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.55);background:#000;flex:0 0 auto;
+  touch-action:none;cursor:grab;
+}
+.device.desktop-frame{border-radius:16px;border-width:14px}
+.device:active{cursor:grabbing}
+.device img{
+  position:absolute;top:50%;left:50%;transform-origin:center;
+  user-select:none;-webkit-user-drag:none;max-width:none;max-height:none;
+}
+.device .notch{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  width:34%;height:22px;border-radius:14px;background:#101319;z-index:2;
+}
+.device.desktop-frame .notch{display:none}
+.pv-bar{
+  padding:.9rem 1.2rem;border-top:1px solid var(--line);
+  display:flex;align-items:center;gap:1rem;flex-wrap:wrap;background:var(--bg2);
+}
+.pv-bar label{font-size:.8rem;color:var(--muted);display:flex;align-items:center;gap:.6rem}
+.pv-bar input[type=range]{accent-color:var(--accent);width:170px}
+.pv-devices{display:flex;gap:.4rem;margin-left:auto}
+
+/* ---------- settings ---------- */
+.settings-body{width:min(520px,94vw);height:auto;max-height:88vh;flex-direction:column;display:block}
+.settings-body .side{width:100%;flex:0 0 auto;border-left:none;max-height:88vh;overflow-y:auto}
+.key-row{
+  display:flex;gap:.5rem;align-items:center;margin-top:.4rem;
+}
+.key-row input{
+  flex:1;padding:.55rem .75rem;border-radius:10px;border:1px solid var(--line);
+  background:var(--bg);color:var(--text);outline:none;font-size:.8rem;
+}
+.key-row input:focus{border-color:var(--accent)}
+.status-pill{font-size:.68rem;font-weight:700;padding:.22rem .55rem;border-radius:999px;white-space:nowrap}
+.status-pill.ok{background:rgba(34,211,238,.15);color:var(--accent2)}
+.status-pill.off{background:rgba(139,147,167,.14);color:var(--muted)}
+.source-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.5rem}
+.source-item{
+  display:flex;align-items:center;gap:.7rem;padding:.75rem .9rem;border:1px solid var(--line);
+  border-radius:12px;background:var(--card);
+}
+.source-item .nm{font-weight:700;font-size:.88rem}
+.source-item .ds{font-size:.72rem;color:var(--muted)}
+.hint{font-size:.72rem;color:var(--muted);line-height:1.6}
+.hint a{color:var(--accent);text-decoration:none;font-weight:600}
+
+/* ---------- toast ---------- */
+#toasts{position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:.5rem;align-items:center}
+.toast{
+  background:var(--card);border:1px solid var(--line);color:var(--text);
+  padding:.6rem 1.1rem;border-radius:12px;font-size:.82rem;box-shadow:var(--shadow);
+  animation:tin .25s ease;display:flex;gap:.5rem;align-items:center;
+}
+.toast.ok{border-color:rgba(34,211,238,.5)}
+.toast.err{border-color:rgba(244,63,94,.5)}
+@keyframes tin{from{opacity:0;transform:translateY(12px)}to{opacity:1}}
+
+/* ---------- responsive ---------- */
+@media(max-width:900px){
+  .sheet{flex-direction:column;height:min(860px,92vh)}
+  .sheet .side{width:100%;flex:0 0 auto;border-left:none;border-top:1px solid var(--line);max-height:45%}
+  .sheet .img-side{flex:1;min-height:0}
+  .brand span.brand-name{display:none}
+  .filterbar{gap:.5rem}
+}
+@media(max-width:640px){
+  .grid{columns:2 150px;column-gap:10px}
+  .card{margin-bottom:10px}
+  .header-inner{padding:.6rem .8rem;gap:.5rem}
+  .brand{order:1}
+  .header-actions{order:2;margin-left:auto}
+  .searchbox{order:3;flex-basis:100%;max-width:none}
+  .filterbar{padding:.7rem .8rem .1rem}
+  main{padding:.8rem .8rem 3rem}
+  /* single horizontal scroll lines instead of wrapping on phones */
+  .chips-row{overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;-webkit-overflow-scrolling:touch;padding:2px}
+  .chips-row{scrollbar-width:none}
+  .chips-row::-webkit-scrollbar{display:none}
+  /* full-width search row; buttons stay beside logo */
+  .btn{padding:.45rem .8rem}
+  .pv-bar{gap:.55rem;padding:.7rem .8rem}
+  .pv-bar input[type=range]{width:120px}
+  .sheet{height:min(760px,94vh)}
+  .sheet .side{padding:1rem;max-height:50%}
+}
+@media(max-width:400px){
+  .grid{columns:2 120px}
+  .icon-btn{width:36px;height:36px}
+  .device-wrap-hidden{display:none}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand" id="brandBtn" title="WallVault — home">
+      <div class="logo">WV</div>
+      <span class="brand-name">WallVault</span>
+    </div>
+    <div class="searchbox">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="searchInput" type="search" placeholder="Search wallpapers… (Enter)" autocomplete="off">
+      <button class="clear-q" id="clearQ" title="Clear">✕</button>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="randomBtn" title="Surprise me — random wallpaper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l3-3 4 4m0 0 2-2 2-2m-4 4 3.5 5.5M3 17h5m0 0-2-2m2 2-2 2m8-2c2 0 3.5 1 4.5 3L21 16"/></svg>
+      </button>
+      <button class="icon-btn" id="favBtn" title="Favorites">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.7-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.7 12c-2.2 4.4-9.7 9-9.7 9z"/></svg>
+        <span class="badge" id="favCount" style="display:none">0</span>
+      </button>
+      <button class="icon-btn" id="settingsBtn" title="Settings — connect Pexels / Unsplash for full search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2-1.2L14 3h-4l-.5 2.6a7 7 0 0 0-2 1.2l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2 1.2L10 21h4l.5-2.6a7 7 0 0 0 2-1.2l2.4 1 2-3.4-2-1.6c.1-.4.1-.8.1-1.2z"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" title="Toggle dark / light">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="filterbar" id="filterbar">
+  <div class="chips-row" id="catRow"><span class="row-label">Category</span></div>
+  <div class="chips-row" id="colorRow"><span class="row-label">Color</span></div>
+  <div class="chips-row" id="orientRow">
+    <span class="row-label">Layout</span>
+    <div class="seg" id="orientSeg">
+      <button data-orient="all" class="active">All</button>
+      <button data-orient="desktop">Desktop</button>
+      <button data-orient="mobile">Phone</button>
+    </div>
+    <span class="hint" id="sourceStatus"></span>
+  </div>
+</div>
+
+<main>
+  <div class="results-head">
+    <h2 id="resultsTitle">Discover</h2>
+    <span class="count" id="resultsCount"></span>
+    <span class="spacer"></span>
+    <button class="btn" id="loadMoreBtn" style="display:none">Load more ↓</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" style="display:none">
+    <div class="big">🌌</div>
+    <h3 id="emptyTitle">Nothing here yet</h3>
+    <p id="emptyBody">Try another category or add a free Pexels / Unsplash key in settings to unlock full search across the internet.</p>
+  </div>
+  <div class="loader" id="loader"><div class="spinner"></div><span>Gathering wallpapers…</span></div>
+  <div id="endNote"></div>
+</main>
+
+<!-- ===================== DETAIL MODAL ===================== -->
+<div class="modal" id="detailModal">
+  <div class="backdrop" data-close></div>
+  <div class="sheet">
+    <button class="close-x" data-close>✕</button>
+    <div class="img-side">
+      <img id="dImg" alt="">
+      <div class="strip" id="dStrip"></div>
+    </div>
+    <div class="side">
+      <div><span class="src-pill" id="dSource">source</span></div>
+      <h3 id="dTitle">Wallpaper</h3>
+      <div class="meta" id="dMeta"></div>
+      <div class="color-swatch" id="dColorRow" style="display:none">
+        <div class="sw" id="dSwatch"></div><span id="dColorText">Dominant color</span>
+      </div>
+      <div>
+        <div class="section-label" style="margin-bottom:.55rem">Pixel-perfect downloads</div>
+        <div class="dl-grid" id="dDownloads"></div>
+      </div>
+      <div>
+        <div class="section-label" style="margin-bottom:.55rem">Preview & compose</div>
+        <div class="side-actions">
+          <button class="btn primary" id="dPreviewBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="2.5" width="12" height="19" rx="3"/><path d="M10 19h4"/></svg>
+            Lock screen test
+          </button>
+          <button class="btn" id="dOpenBtn">Open ↗</button>
+        </div>
+      </div>
+      <div class="side-actions" style="margin-top:auto">
+        <button class="btn" id="dFavBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.7-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.7 12c-2.2 4.4-9.7 9-9.7 9z"/></svg>
+          <span id="dFavLabel">Favorite</span>
+        </button>
+        <button class="btn" id="dCopyBtn">Copy link</button>
+      </div>
+    </div>
+
+    <!-- preview / compose overlay -->
+    <div class="preview-sheet" id="previewSheet">
+      <div class="pv-stage" id="pvStage">
+        <div class="device" id="device">
+          <img id="pvImg" alt="">
+          <div class="notch"></div>
+        </div>
+      </div>
+      <div class="pv-bar">
+        <button class="btn" id="pvBack">← Back</button>
+        <label>Zoom <input type="range" id="pvZoom" min="1" max="3" step="0.01" value="1"></label>
+        <label>Drag the image to position · pinch if on phone</label>
+        <div class="pv-devices seg" id="pvSeg">
+          <button data-dev="phone" class="active">📱 Phone</button>
+          <button data-dev="desktop">🖥 Monitor</button>
+          <button data-dev="tablet">💻 Laptop</button>
+        </div>
+        <button class="btn primary" id="pvExport">Save this crop ⬇</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== SETTINGS MODAL ===================== -->
+<div class="modal" id="settingsModal">
+  <div class="backdrop" data-close></div>
+  <div class="sheet settings-body">
+    <button class="close-x" data-close>✕</button>
+    <div class="side">
+      <h3 style="font-size:1.15rem">⚙️ Settings</h3>
+      <div class="hint">
+        WallVault already works with <b>zero keys</b> using open sources.
+        Add a free <b>Pexels</b> and/or <b>Unsplash</b> key to unlock full-text search
+        against millions of images at up to 4K+ original resolution. Keys are stored
+        <b>only in your browser</b> (localStorage) and sent directly to the provider.
+      </div>
+      <div class="section-label" style="margin-top:1rem">Offline sources</div>
+      <div class="source-list" id="keylessList"></div>
+      <div class="section-label" style="margin-top:1rem">Pinterest &amp; direct links</div>
+      <div class="hint">
+        Pinterest doesn't allow browsers to call its API, but its image files do work here:
+        open a pin → <b>right-click the image → “Copy image address”</b> → paste below
+        (one or many). Links are saved in your browser and appear at the top of the grid.
+      </div>
+      <div class="key-row">
+        <input id="customUrlInput" type="text" placeholder="https://i.pinimg.com/originals/…jpg">
+        <button class="btn primary" id="addCustomBtn" style="white-space:nowrap">Add link</button>
+      </div>
+      <div class="ds" id="customCountLine" style="font-size:.72rem;color:var(--muted)"></div>
+      <div class="section-label" style="margin-top:1rem">Free API keys (optional)</div>
+      <div class="source-list" id="keyedList"></div>
+      <div class="hint" style="margin-top:.4rem">
+        Get keys free: <a href="https://www.pexels.com/api/" target="_blank" rel="noopener">pexels.com/api</a> ·
+        <a href="https://unsplash.com/developers" target="_blank" rel="noopener">unsplash.com/developers</a>
+      </div>
+      <div class="side-actions" style="margin-top:1.2rem">
+        <button class="btn primary" data-close style="justify-content:center">Done</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+
+<script>
+"use strict";
+/* =========================================================
+   WallVault — single-file wallpaper app
+   Sources: WallWidgy API + Openverse (keyless) → Pexels + Unsplash (optional keys)
+   ========================================================= */
+
+/* ---------- constants ---------- */
+const WW_API = "https://wallwidgy.vercel.app/api/wallpapers";
+const OPENVERSE_API = "https://api.openverse.org/v1/images/";
+const PEXELS_API = "https://api.pexels.com/v1/";
+const UNSPLASH_API = "https://api.unsplash.com/";
+
+const CATEGORIES = ["all","abstract","anime","architecture","art","cars","minimal","nature","tech","space","city","ocean","forest","mountains","animals","flowers","dark","neon","vaporwave","textures"];
+const COLORS = [
+  ["blue","#3b82f6"],["red","#ef4444"],["green","#22c55e"],["purple","#a855f7"],
+  ["pink","#ec4899"],["orange","#f97316"],["yellow","#eab308"],["black","#111318"],["white","#e8ebf3"]
+];
+const WW_ONLY_CATS = new Set(["space","city","ocean","forest","mountains","animals","flowers","dark","neon","vaporwave","textures"]); // hidden unless a key unlocks search
+
+const LS = { favs:"wv_favorites", theme:"wv_theme", pexels:"wv_pexels_key", unsplash:"wv_unsplash_key", custom:"wv_custom_links" };
+
+/* ---------- state ---------- */
+const S = {
+  route:"home",                 // home | favorites
+  category:"all",
+  color:"",
+  orient:"all",                 // all | desktop | mobile
+  query:"",                     // search text
+  page:1,
+  items:[],
+  seen:new Set(),
+  loading:false,
+  loadToken:0,                  // discard stale page loads when filters change
+  done:false,                   // no more pages
+  preview:{ scale:1, dx:0, dy:0, device:"phone", naturalW:0, naturalH:0 },
+};
+const el = id => document.getElementById(id);
+const grid = el("grid"), loader = el("loader"), empty = el("empty");
+
+/* ---------- tiny utils ---------- */
+const debounce = (fn,ms=450)=>{let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms)}};
+const esc = s => String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg,type=""){
+  const t=document.createElement("div");
+  t.className="toast "+type; t.textContent=msg;
+  el("toasts").appendChild(t);
+  setTimeout(()=>{t.style.opacity="0";t.style.transition="opacity .3s";setTimeout(()=>t.remove(),320)},2600);
+}
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v==null?d:JSON.parse(v);}catch{ return d; } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} }
+};
+let FAVORITES = store.get(LS.favs,[]);
+const saveFavs = ()=>{ store.set(LS.favs,FAVORITES); renderFavCount(); };
+
+/* ---------- theme ---------- */
+function applyTheme(t){
+  document.documentElement.dataset.theme=t;
+  el("themeIcon").innerHTML = t==="dark"
+    ? '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>'
+    : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4"/>';
+  store.set(LS.theme,t);
+}
+el("themeBtn").onclick = ()=> applyTheme(document.documentElement.dataset.theme==="dark"?"light":"dark");
+applyTheme(store.get(LS.theme,"dark"));
+
+/* ---------- sources / keys ---------- */
+const getKey = { pexels:()=> (store.get(LS.pexels,"")||"").trim(), unsplash:()=> (store.get(LS.unsplash,"")||"").trim() };
+const haveKey = { pexels:()=>!!getKey.pexels(), unsplash:()=>!!getKey.unsplash() };
+
+/* =========================================================
+   FETCHERS — each returns Promise<item[]> (normalized)
+   item = { id, title, author, source, thumb, full, w, h, page, canCrop }
+   ========================================================= */
+function activeSources(){
+  const s=[];
+  if(S.route==="favorites") return ["favorites"];
+  s.push("wallwidgy");
+  s.push("openverse");
+  s.push("wikimedia");
+  s.push("picsum");
+  if(haveKey.pexels()) s.push("pexels");
+  if(haveKey.unsplash()) s.push("unsplash");
+  if(S.query || CUSTOM.length) s.push("link");
+  return s;
+}
+
+async function jget(url,opts){
+  const r = await fetch(url,opts);
+  if(!r.ok) throw new Error(r.status+" "+url.slice(0,60));
+  return r.json();
+}
+
+const WW_CATS = ["abstract","anime","architecture","art","cars","minimal","nature","tech"]; // wallwidgy's own set
+
+/* --- WallWidgy: curated, keyless, category + color aware, 10/request ---
+   Browse mode (Discover): pull every category at once for a rich page 1    */
+async function fetchWallwidgy(page){
+  const cats = (S.query)
+    ? []
+    : (S.category==="all" ? (page===1 ? WW_CATS : []) : [S.category]);
+  if(!cats.length) return [];
+  const one = async (cat)=>{
+    const p = new URLSearchParams({ count:"10" });
+    if(cat!=="all") p.set("category",cat);
+    if(S.color) p.set("color",S.color);
+    if(S.orient==="desktop") p.set("type","desktop");
+    if(S.orient==="mobile") p.set("type","mobile");
+    try{
+      const data = await jget(`${WW_API}?${p}`);
+      return data.wallpapers||[];
+    }catch(e){ return []; }
+  };
+  const perCat = await Promise.all(cats.map(one));
+  const urls = perCat.flat();
+  if(urls.length===0) return [];
+  // central dedupe happens in fetchPage
+  return urls.map((u,i)=>{
+    const base = (u.split("/").pop()||"wallpaper").replace(/\.\w+$/,"").replace(/[-_]/g," ");
+    return {
+      id:"ww-"+(u.split("/").pop()||i),
+      title:base||"Wallpaper",
+      author:"WallWidgy curated",
+      source:"WallWidgy",
+      thumb:u, full:u, w:0,h:0,
+      page:"https://www.wallwidgy.app/",
+      canCrop:true, key:u
+    };
+  });
+}
+
+/* --- Openverse: keyless web-wide search --- */
+async function fetchOpenverse(page){
+  const hasQuery = !!S.query;
+  if(S.route!=="home") return [];
+  if(S.category!=="all" && !hasQuery) return []; // openverse is search-based; skip idle browse
+  if(!hasQuery && !S.color) return [];
+  const p = new URLSearchParams({
+    q: S.query || S.category.split("-").join(" "),
+    page:String(page), page_size:"20",
+    extension:"jpg,png,webp",
+  });
+  const payload = await jget(OPENVERSE_API+"?"+p.toString());
+  const results = payload.results||[];
+  return results.map(r=>{
+    const okType = /\.(jpe?g|png|webp)$/i.test(r.url||"");
+    return {
+      id:"ov-"+r.id, title:r.title||"Wallpaper", author:r.creator||r.source||"Web",
+      source:"Openverse",
+      thumb:(okType?r.url:r.thumbnail),
+      full:r.url, w:r.width||0,h:r.height||0,
+      page:r.foreign_landing_url||"",
+      canCrop:okType && (r.width||0)>=1600, key:("ov"+r.id)
+    };
+  }).filter(x=>x.thumb);
+}
+
+/* --- Wikimedia Commons: keyless, searchable, CORS-open originals --- */
+async function fetchWikimedia(page){
+  if(S.route!=="home") return [];
+  const q = S.query || (S.category!=="all" ? categoryQuery(S.category) : "");
+  if(!q || S.color) return []; // Commons has no color filter; skip so results stay honest
+  const params = new URLSearchParams({
+    action:"query", format:"json", origin:"*",
+    generator:"search",
+    gsrsearch: q + " filetype:bitmap -icon" , // photos only
+    gsrnamespace:"6", gsrlimit:"20",
+    prop:"imageinfo", iiprop:"url|size",
+    iiurlwidth:"640",
+  });
+  if(page>1) params.set("gsroffset", String((page-1)*20));
+  const data = await jget("https://commons.wikimedia.org/w/api.php?"+params);
+  const pages = (data.query&&data.query.pages)||{};
+  return Object.values(pages).map(pg=>{
+    const ii = pg.imageinfo&&pg.imageinfo[0]; if(!ii) return null;
+    const w=ii.width||0,h=ii.height||0;
+    if(S.orient==="desktop"&&w&&h&&w<h) return null;
+    if(S.orient==="mobile"&&w&&h&&h<w) return null;
+    if(w&&w<1200) return null;
+    return {
+      id:"wm-"+pg.pageid,
+      title:(pg.title||"Wallpaper").replace(/\.(jpe?g|png|webp)$/i,""),
+      author:"Wikimedia Commons",
+      source:"Wikimedia",
+      thumb: ii.thumburl||ii.url,
+      full: ii.url, w,h,
+      page:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(pg.title||""),
+      canCrop:true, key:"wm"+pg.pageid
+    };
+  }).filter(Boolean);
+}
+
+/* --- Lorem Picsum: keyless real photography, paginated, any-resolution --- */
+async function fetchPicsum(page){
+  if(S.route!=="home") return [];
+  if(S.query || S.category!=="all") return []; // browse-only source
+  const data = await jget(`https://picsum.photos/v2/list?page=${page}&limit=24`);
+  return (data||[]).map((im,ix)=>({
+    id:"pc-"+im.id,
+    title: "Photo "+im.id,
+    author: im.author||"",
+    authorUrl: im.url||"",
+    source:"Picsum",
+    thumb:`https://picsum.photos/id/${im.id}/600/460`,
+    w:im.width||0, h:im.height||0,
+    full:`https://picsum.photos/id/${im.id}/${im.width||1920}/${im.height||1080}`,
+    page: im.url||"",
+    canCrop:true, key:"pc"+im.id+ix
+  }));
+}
+
+/* --- Pexels --- */
+async function fetchPexels(page,searchOnly){
+  if(!haveKey.pexels()) return [];
+  const per="24";
+  let url;
+  const color = S.color||"";
+  const orient = S.orient==="mobile"?"portrait":S.orient==="desktop"?"landscape":"";
+  if(S.query){
+    const p=new URLSearchParams({query:S.query,per_page:per,page:String(page)});
+    if(color) p.set("color",color);
+    if(orient) p.set("orientation",orient);
+    url = PEXELS_API+"search?"+p;
+  }else if(S.category!=="all"){
+    const p=new URLSearchParams({query:categoryQuery(S.category),per_page:per,page:String(page)});
+    if(color) p.set("color",color);
+    if(orient) p.set("orientation",orient);
+    url = PEXELS_API+"search?"+p;
+  }else{
+    if(color||orient||searchOnly===true) return []; // curated ignores color/orient; avoid confusion
+    url = PEXELS_API+"curated?per_page="+per+"&page="+page;
+  }
+  const data = await jget(url,{headers:{Authorization:getKey.pexels()}});
+  const photos = data.photos||[];
+  return photos.map(ph=>({
+    id:"px-"+ph.id, title: ph.alt || "Pexels photo", author: ph.photographer||"",
+    authorUrl: ph.photographer_url||"", source:"Pexels",
+    thumb: ph.src.large, full: ph.src.original, w:ph.width||0, h:ph.height||0,
+    page: ph.url||"", canCrop:true, key:"px"+ph.id,
+    _pexelsId: ph.id, _orig: ph.src.original
+  }));
+}
+
+/* --- Unsplash --- */
+async function fetchUnsplash(page,searchOnly){
+  if(!haveKey.unsplash()) return [];
+  const per="24";
+  const orient = S.orient==="mobile"?"portrait":S.orient==="desktop"?"landscape":"";
+  const listUrl = q => UNSPLASH_API + q + (q.includes("?")?"&":"?") + new URLSearchParams({
+    per_page:per, page:String(page),
+    ...(orient?{orientation:orient}:{})
+  }) + "&client_id=" + encodeURIComponent(getKey.unsplash());
+  let url;
+  if(S.query){
+    url = listUrl(`search/photos?query=${encodeURIComponent(S.query)}${S.color?"&color="+S.color:""}`);
+  }else if(S.category!=="all"){
+    url = listUrl(`search/photos?query=${encodeURIComponent(categoryQuery(S.category))}${S.color?"&color="+S.color:""}`);
+  }else{
+    if(S.color||orient||searchOnly===true) return [];
+    url = listUrl("photos?order_by=popular");
+  }
+  const data = await jget(url);
+  const photos = Array.isArray(data)?data:(data.results||[]);
+  return photos.map(ph=>{
+    const rawBase = (ph.urls&&ph.urls.raw)||"";
+    return {
+      id:"un-"+ph.id, title:(ph.description||ph.alt_description||"Unsplash photo"),
+      author:(ph.user&&ph.user.name)||"", authorUrl:(ph.user&&ph.user.links&&ph.user.links.html)||"",
+      source:"Unsplash",
+      thumb:(ph.urls&&ph.urls.small)||rawBase,
+      full:rawBase, w:ph.width||0,h:ph.height||0,
+      page:(ph.links&&ph.links.html)||"",
+      canCrop:true, key:"un"+ph.id
+    };
+  });
+}
+
+const CAT_QUERY = {
+  minimal:"minimal", anime:"anime", abstract:"abstract", architecture:"architecture",
+  art:"art", cars:"car", tech:"technology", space:"space", city:"city night",
+  ocean:"ocean", forest:"forest", mountains:"mountains", animals:"animal",
+  flowers:"flowers", dark:"dark", neon:"neon", vaporwave:"vaporwave", textures:"texture"
+};
+const categoryQuery = c => CAT_QUERY[c]||c;
+
+/* custom/pasted links (incl. Pinterest image addresses) */
+let CUSTOM = store.get(LS.custom,[]) // [{id,key,title,thumb,full,...}]
+function matchesOrient(it){
+  if(S.orient==="all") return true;
+  if(!it.w||!it.h) return true; // unknown yet
+  return S.orient==="desktop" ? it.w>=it.h : it.h>=it.w;
+}
+
+async function fetchPage(page){
+  const jobs = activeSources().map(name=>{
+    if(name==="wallwidgy") return fetchWallwidgy(page).catch(e=>{console.warn(e);return[]});
+    if(name==="openverse") return fetchOpenverse(page).catch(e=>{console.warn(e);return[]});
+    if(name==="wikimedia") return fetchWikimedia(page).catch(e=>{console.warn(e);return[]});
+    if(name==="picsum") return fetchPicsum(page).catch(e=>{console.warn(e);return[]});
+    if(name==="pexels") return fetchPexels(page).catch(e=>{console.warn(e);return[]});
+    if(name==="unsplash") return fetchUnsplash(page).catch(e=>{console.warn(e);return[]});
+    return Promise.resolve([]);
+  });
+  let all = (await Promise.all(jobs)).flat();
+  if(page===1 && !S.query) all = [...CUSTOM, ...all.filter(x=>x.source!=="Link")];
+  all = all.filter(matchesOrient);
+  // dedupe across sources
+  const fresh = all.filter(x=>{ if(S.seen.has(x.full)) return false; S.seen.add(x.full); return true; });
+  return fresh;
+}
+
+/* =========================================================
+   RENDER GRID
+   ========================================================= */
+const FAV_SVG='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7.5-4.6-9.7-9A5.4 5.4 0 0 1 12 6.6 5.4 5.4 0 0 1 21.7 12c-2.2 4.4-9.7 9-9.7 9z"/></svg>';
+
+function isFav(item){ return FAVORITES.some(f=>f.full===item.full); }
+async function toggleFav(item){
+  if(isFav(item)){ FAVORITES=FAVORITES.filter(f=>f.full!==item.full); toast("Removed from favorites","ok"); }
+  else { FAVORITES.unshift({...item, savedAt:Date.now()}); toast("Added to favorites ♥","ok"); if(FAVORITES.length>300){FAVORITES=FAVORITES.slice(0,300);} }
+  saveFavs();
+  document.querySelectorAll(`.card[data-key]`).forEach(c=>{
+    const it=S.items.find(i=>i.key===c.dataset.key)||FAVORITES.find(i=>i.key===c.dataset.key);
+    if(it) c.querySelector(".fav-mini")?.classList.toggle("faved", isFav(it));
+  });
+  updateDetailFav();
+}
+
+function cardHTML(item){
+  const fav = isFav(item);
+  const res = item.w?"style=\"aspect-ratio:"+item.w+"/"+item.h+"\"":"";
+  return `<article class="card" data-key="${esc(item.key)}" ${res}>
+    <div class="shimmer"></div>
+    <img loading="lazy" src="${esc(item.thumb)}" alt="${esc(item.title)}">
+    <div class="card-actions">
+      <button class="mini-btn fav-mini ${fav?"faved":""}" title="Favorite" data-fav>${FAV_SVG}</button>
+      <button class="mini-btn" title="Download original" data-dl>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 19h16"/></svg>
+      </button>
+    </div>
+    <div class="overlay">
+      <div class="info">
+        <div class="src">${esc(item.source)}</div>
+        <div class="t">${esc(item.title)}</div>
+        <div class="a">${esc(item.author)}</div>
+      </div>
+    </div>
+    <div class="res-tag">${item.w?esc(item.w+"×"+item.h):"HD+"}</div>
+  </article>`;
+}
+
+function wireCard(card,item){
+  const img=card.querySelector("img");
+  img.onload=()=>{img.classList.add("loaded");card.querySelector(".shimmer")?.remove(); if(!item.w&&img.naturalWidth>0){item.w=img.naturalWidth;item.h=img.naturalHeight;card.querySelector(".res-tag").textContent=img.naturalWidth+"×"+img.naturalHeight;}};
+  img.onerror=()=>{card.remove(); iAmEmpty();};
+  card.onclick=e=>{
+    if(e.target.closest("[data-fav]")){ toggleFav(item); return; }
+    if(e.target.closest("[data-dl]")){ download(item.full, suggestName(item,item.w||0,item.h||0)); return; }
+    openDetail(item);
+  };
+}
+
+function renderGrid(items,append){
+  const html = items.map(cardHTML).join("");
+  if(append){ grid.insertAdjacentHTML("beforeend",html); }
+  else { grid.innerHTML=html; }
+  [...grid.children].filter(c=>c.classList.contains("card")).forEach(card=>{
+    const item = (S.route==="favorites"?FAVORITES:S.items).find(i=>i.key===card.dataset.key);
+    if(item) wireCard(card,item);
+  });
+  renderSourceStatus();
+}
+
+function updateResultHead(){
+  const t = S.route==="favorites"?"Favorites ♥":
+    S.query?`Results for “${esc(S.query)}”`:
+    S.category!=="all"?S.category[0].toUpperCase()+S.category.slice(1):"Discover";
+  el("resultsTitle").innerHTML=t;
+  const n=S.route==="favorites"?FAVORITES.length:S.items.length;
+  el("resultsCount").textContent=n?`${n} wallpaper${n>1?"s":""}`:"";
+  el("loadMoreBtn").style.display = (S.route==="home"&&!S.done&&S.items.length>0)?"inline-flex":"none";
+  const emptyish = n===0&&!S.loading;
+  empty.style.display=emptyish?"block":"none";
+  if(emptyish){
+    if(S.route==="favorites"){ el("emptyTitle").textContent="No favorites yet"; el("emptyBody").textContent="Tap the heart on any wallpaper and it will live here."; }
+    else if(S.query){ el("emptyTitle").textContent="No matches found"; el("emptyBody").textContent=haveKey.pexels()||haveKey.unsplash()?"Try different words, or switch category.":"Full-text search needs a free Pexels/Unsplash key — add one in settings to search millions of images."; }
+    else { el("emptyTitle").textContent="Nothing here yet"; el("emptyBody").textContent="Try another category or color."; }
+  }
+}
+
+function iAmEmpty(){ // called when cards error out
+  clearTimeout(iAmEmpty.t);
+  iAmEmpty.t=setTimeout(()=>{
+    if(!S.loading && !grid.querySelector(".card:not([data-dying])")) updateResultHead();
+  },150);
+}
+
+/* =========================================================
+   LOAD FLOW
+   ========================================================= */
+async function resetAndLoad(){
+  S.page=1; S.items=[]; S.seen=new Set(); S.done=false; S.loadToken++;
+  if(S.route==="favorites"){
+    loader.style.display="none"; grid.innerHTML="";
+    renderGrid(FAVORITES,false); updateResultHead(); renderSourceStatus(); return;
+  }
+  updateResultHead();
+  await loadMore(true);
+}
+async function loadMore(force){
+  if(S.loading && !force) return;
+  if(S.route==="favorites"){ S.done=true; return; }
+  const token=S.loadToken;
+  S.loading=true; loader.style.display="flex"; empty.style.display="none";
+  try{
+    const fresh = await fetchPage(S.page);
+    if(token!==S.loadToken) return; // a newer filter/load took over — drop stale results
+    S.items.push(...fresh);
+    renderGrid(fresh,true);
+    if(fresh.length===0){
+      // keyed sources paginate properly: stop on first empty page.
+      // wallwidgy is random + capped: give it a few extra pages before ending.
+      if(haveKey.pexels() || haveKey.unsplash() || S.page>=5) S.done=true;
+    }
+    S.page++;
+    updateResultHead();
+  }catch(e){
+    console.warn(e); toast(" Couldn't reach sources — check your connection","");
+    S.done=true; updateResultHead();
+  }finally{
+    S.loading=false; loader.style.display="none";
+  }
+}
+el("loadMoreBtn").onclick=loadMore;
+
+function renderSourceStatus(){
+  if(S.route==="favorites"){ el("sourceStatus").textContent="Showing your saved collection"; return; }
+  const s=activeSources();
+  el("sourceStatus").textContent =
+    !haveKey.pexels() && !haveKey.unsplash()
+    ? `Sources: ${s.join(" · ")} — add a free key in ⚙️ to unlock full search`
+    : "Sources: "+s.join(" · ");
+}
+
+/* =========================================================
+   FILTER BAR
+   ========================================================= */
+function buildChips(){
+  const catRow=el("catRow"), colorRow=el("colorRow");
+  const cVisible = haveKey.pexels()||haveKey.unsplash();
+  const cats = [...CATEGORIES].filter(c=>c==="all"||!WW_ONLY_CATS.has(c)||cVisible);
+  catRow.innerHTML='<span class="row-label">Category</span>'+
+    cats.map(c=>`<button class="chip ${S.category===c?"active":""}" data-cat="${c}">${c==="all"?"All":c[0].toUpperCase()+c.slice(1)}</button>`).join("");
+  catRow.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
+    S.category=b.dataset.cat; S.query=""; el("searchInput").value=""; el("clearQ").style.display="none";
+    buildChips(); resetAndLoad();
+  });
+  colorRow.innerHTML='<span class="row-label">Color</span>'+
+    `<button class="chip ${!S.color?"active":""}" data-col="">Any</button>`+
+    COLORS.map(([n,hex])=>`<button class="color-dot ${S.color===n?"active":""}" data-col="${n}" style="background:${hex}" title="${n}"></button>`).join("");
+  colorRow.querySelectorAll("[data-col]").forEach(b=>b.onclick=()=>{
+    S.color=b.dataset.col; buildChips(); resetAndLoad();
+  });
+  document.querySelectorAll("#orientSeg [data-orient]").forEach(b=>{
+    b.classList.toggle("active",S.orient===b.dataset.orient);
+    b.onclick=()=>{ S.orient=b.dataset.orient; buildChips(); resetAndLoad(); };
+  });
+}
+
+/* search */
+el("searchInput").addEventListener("input",e=>{
+  el("clearQ").style.display=e.target.value?"block":"none";
+});
+el("searchInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    S.query=e.target.value.trim(); S.category="all";
+    buildChips(); resetAndLoad();
+    el("searchInput").blur();
+  }
+});
+el("clearQ").onclick=()=>{ el("searchInput").value=""; el("clearQ").style.display="none"; S.query=""; buildChips(); resetAndLoad(); };
+
+/* =========================================================
+   HEADER ACTIONS
+   ========================================================= */
+el("brandBtn").onclick=()=>goHome();
+el("favBtn").onclick=()=>{
+  location.hash = S.route==="favorites"?"":"#/favorites";
+};
+function goHome(){ location.hash=S.route==="home"?"#fresh":"#"; if(S.route==="home") resetAndLoad(); window.scrollTo({top:0,behavior:"smooth"}); }
+function renderFavCount(){
+  const b=el("favCount");
+  b.style.display=FAVORITES.length?"grid":"none";
+  b.textContent=FAVORITES.length;
+}
+window.addEventListener("hashchange",onHash);
+function onHash(){
+  const wantFav=location.hash.includes("favorites");
+  const next=wantFav?"favorites":"home";
+  if(next!==S.route){ S.route=next; buildChips(); resetAndLoad(); }
+  window.scrollY||window.scrollTo({top:0});
+}
+
+el("randomBtn").onclick=async ()=>{
+  if(S.loading) return;
+  toast("Rolling the dice… 🎲");
+  S.route="home"; S.query=""; el("searchInput").value="";
+  S.category="all"; S.color=""; S.orient="all"; buildChips();
+  // grab one random curated wallpaper
+  try{
+    const data=await fetch(WW_API+"?count=1").then(r=>r.json());
+    const u=(data.wallpapers||[])[0];
+    if(u){
+      S.items=[]; S.seen=new Set();
+      const item={ id:"ww-"+u.split("/").pop(), title:(u.split("/").pop()||"random").replace(/\.\w+$/,"").replace(/[-_]/g," "),
+        author:"WallWidgy curated", source:"WallWidgy", thumb:u, full:u, w:0,h:0, page:"", canCrop:true, key:u };
+      S.items=[item]; S.done=false;
+      grid.innerHTML=cardHTML(item);
+      [...grid.children].forEach(c=>wireCard(c,item));
+      updateResultHead(); renderSourceStatus();
+      openDetail(item);
+    }
+  }catch{ toast("Couldn't fetch a random one","err"); }
+};
+
+/* =========================================================
+   DOWNLOADS + RESOLUTIONS
+   ========================================================= */
+async function download(url, filename){
+  toast("Preparing download…");
+  try{
+    const r=await fetch(url,{mode:"cors"});
+    if(!r.ok) throw 0;
+    const blob=await r.blob();
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(blob); a.download=filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  }catch{
+    const a=document.createElement("a");
+    a.href=url; a.download=filename; a.target="_blank"; a.rel="noopener";
+    document.body.appendChild(a); a.click(); a.remove();
+    toast("Opened in new tab — right-click → Save image if it didn't auto-save","");
+  }
+}
+function suggestName(item,w,h){
+  const id=(item.title||"wallpaper").toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"wallpaper";
+  return `wallvault-${id}${w?"-"+w+"x"+h:""}.jpg`;
+}
+/* build crisp crop URLs from provider CDNs */
+function cropUrl(item,w,h){
+  if(item.source==="Picsum"){
+    const m=(item.full||"").match(/\/id\/(\d+)\//);
+    if(m) return `https://picsum.photos/id/${m[1]}/${w}/${h}`;
+  }
+  if(item.source==="Pexels"&&item._orig){
+    const base=item._orig.split("?")[0];
+    return `${base}?auto=compress&cs=tinysrgb&w=${w}&h=${h}&fit=crop`;
+  }
+  if(item.source==="Unsplash"&&item.full){
+    const base=item.full.split("?")[0];
+    return `${base}?q=80&w=${w}&h=${h}&fit=crop&crop=entropy&auto=format`;
+  }
+  return null;
+}
+function buildDownloadButtons(item){
+  const box=el("dDownloads"); box.innerHTML="";
+  const landscape = !item.h || item.w>item.h;
+  const entries=[];
+  if(landscape){
+    entries.push(["4K","3840×2160",3840,2160],["QHD","2560×1440",2560,1440],["FHD","1920×1080",1920,1080]);
+  }else{
+    entries.push(["Phone 2X","1440×3120",1440,3120],["Phone","1080×2340",1080,2340],["Short phone","1080×1920",1080,1920]);
+  }
+  if(item.w&&item.h) entries.unshift(["Original",`${item.w}×${item.h}`,0,0]);
+  entries.forEach(([label,sub,w,h],i)=>{
+    const b=document.createElement("button");
+    b.className="btn"+(i===0?" primary":"");
+    b.innerHTML=`<span>${label}<br><small style="opacity:.7">${sub}</small></span>`;
+    b.onclick=()=>{
+      if(w===0){ download(item.full,suggestName(item,item.w,item.h)); return; }
+      const cu=cropUrl(item,w,h);
+      if(cu) download(cu,suggestName(item,w,h));
+      else { toast("This source serves only its original size — download that one",""); download(item.full,suggestName(item,w,h)); }
+    };
+    box.appendChild(b);
+  });
+  el("dStrip").innerHTML = item.w && item.h
+    ? `<span style="font-size:.75rem;color:#cfd4e2">${item.w} × ${item.h} px · use “Lock screen test” to compose & export your own crop</span>`
+    : "";
+}
+
+/* =========================================================
+   DETAIL MODAL + DOMINANT COLOR
+   ========================================================= */
+let currentDetail=null;
+function openDetail(item){
+  currentDetail=item;
+  el("dSource").textContent=item.source;
+  el("dTitle").textContent=item.title;
+  el("dMeta").innerHTML=`<b>By</b> ${esc(item.author||"Unknown")}<br><b>Resolution</b> ${item.w?item.w+"×"+item.h:"loading…"}<br>${item.page?`<a href="${esc(item.page)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">View source page ↗</a>`:""}`;
+  const img=el("dImg");
+  const src=item.thumb;
+  img.onerror=()=>{ img.src=item.full; };
+  img.src=""; img.src=src; // re-trigger so cached loads stay correct
+  img.onclick=null;
+  // unlock natural dims for card-side info
+  if(!item.w){ const probe=new Image(); probe.onload=()=>{ item.w=probe.naturalWidth; item.h=probe.naturalHeight; el("dMeta").innerHTML=`<b>By</b> ${esc(item.author||"Unknown")}<br><b>Resolution</b> ${item.w}×${item.h}<br>${item.page?`<a href="${esc(item.page)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">View source page ↗</a>`:""}`; buildDownloadButtons(item); }; probe.src=src; }
+  el("dColorRow").style.display="none";
+  computeDominant(img,item);
+  buildDownloadButtons(item);
+  updateDetailFav();
+  el("detailModal").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+function closeDetail(){
+  el("detailModal").classList.remove("open");
+  el("previewSheet").classList.remove("open");
+  document.body.style.overflow="";
+}
+el("detailModal").addEventListener("click",e=>{ if(e.target.closest("[data-close]")) closeDetail(); });
+
+function updateDetailFav(){
+  if(!currentDetail) return;
+  const f=isFav(currentDetail);
+  el("dFavLabel").textContent=f?"Saved ♥":"Favorite";
+  el("dFavBtn").style.borderColor=f?"var(--danger)":"";
+  el("dFavBtn").style.color=f?"var(--danger)":"";
+}
+el("dFavBtn").onclick=()=>toggleFav(currentDetail);
+el("dOpenBtn").onclick=()=>{ if(currentDetail.full) window.open(currentDetail.full,"_blank","noopener"); };
+el("dCopyBtn").onclick=async ()=>{
+  try{ await navigator.clipboard.writeText(currentDetail.full||currentDetail.thumb); toast("Image link copied","ok"); }
+  catch{ toast("Couldn't copy","err"); }
+};
+
+async function computeDominant(img,item){
+  try{
+    const im=new Image(); im.crossOrigin="anonymous"; im.src=item.thumb.startsWith("http")?item.thumb:item.thumb;
+    await im.decode();
+    const c=document.createElement("canvas");
+    const k=Math.min(1, 60/Math.max(im.naturalWidth,im.naturalHeight));
+    c.width=Math.max(1,im.naturalWidth*k|0); c.height=Math.max(1,im.naturalHeight*k|0);
+    c.getContext("2d").drawImage(im,0,0,c.width,c.height);
+    const d=c.getContext("2d").getImageData(0,0,c.width,c.height).data;
+    let r=0,g=0,b=0,n=0;
+    for(let i=0;i<d.length;i+=4){ r+=d[i];g+=d[i+1];b+=d[i+2];n++; }
+    r/=n;g/=n;b/=n;
+    const hex="#"+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,"0")).join("");
+    el("dSwatch").style.background=hex; el("dColorText").textContent="Dominant "+hex;
+    el("dColorRow").style.display="flex";
+  }catch{ /* CORS-tainted or decode fail: skip quietly */ }
+}
+
+/* =========================================================
+   PREVIEW / COMPOSE (lock-screen test + crop export)
+   ========================================================= */
+const PV_DEVICES=[
+  {id:"phone", w:340, h:720, r:38},
+  {id:"desktop", w:600, h:360, r:14},
+  {id:"tablet", w:520, h:340, r:20},
+];
+function openPreview(){
+  const item=currentDetail; if(!item) return;
+  el("previewSheet").classList.add("open");
+  const pv=el("pvImg");
+  const onReady=()=>{
+    S.preview.naturalW=pv.naturalWidth; S.preview.naturalH=pv.naturalHeight; S.preview.scale=1; S.preview.dx=0; S.preview.dy=0;
+    el("pvZoom").value=1;
+    layoutPreview();
+    requestAnimationFrame(layoutPreview); // re-run after the browser's layout settles
+  };
+  pv.onerror=()=>{ pv.onload=onReady; pv.src=item.full; };
+  const src=item.thumb;
+  pv.onload=onReady;
+  if(pv.src===src && pv.complete && pv.naturalWidth>0) onReady(); // already cached — no load event will fire
+  else pv.src=src;
+}
+/* keep the composition frame correct whenever preview space changes */
+addEventListener("resize",()=>{ if(el("previewSheet").classList.contains("open")) layoutPreview(); });
+if("ResizeObserver" in self) new ResizeObserver(()=>{ if(el("previewSheet").classList.contains("open") && S.preview.naturalW) layoutPreview(); }).observe(el("pvStage"));
+el("dPreviewBtn").onclick=openPreview;
+el("pvBack").onclick=()=>{ el("previewSheet").classList.remove("open"); mspClose(); };
+
+function deviceSize(){
+  const d=PV_DEVICES.find(x=>x.id===S.preview.device);
+  const maxW=Math.min(d.w, el("pvStage").clientWidth-40);
+  const maxH=Math.min(d.h, el("pvStage").clientHeight-30);
+  const k=Math.min(maxW/d.w,maxH/d.h);
+  return { w:d.w*k, h:d.h*k, r:d.r };
+}
+function layoutPreview(){
+  const dev=el("device");
+  const {w,h,r}=deviceSize();
+  dev.style.width=w+"px"; dev.style.height=h+"px"; dev.style.borderRadius=r+"px";
+  dev.classList.toggle("desktop-frame",S.preview.device==="desktop");
+  const img=el("pvImg");
+  if(!S.preview.naturalW) return;
+  const cover=Math.max(w/S.preview.naturalW, h/S.preview.naturalH);
+  const k=cover*S.preview.scale;
+  img.style.width=S.preview.naturalW*k+"px";
+  img.style.left=`calc(50% + ${S.preview.dx}px)`;
+  img.style.top=`calc(50% + ${S.preview.dy}px)`;
+  img.style.transform="translate(-50%,-50%)";
+}
+function clampPreview(){
+  const {w,h}=deviceSize();
+  const cover=Math.max(w/S.preview.naturalW, h/S.preview.naturalH);
+  const k=cover*S.preview.scale;
+  const maxDx=(S.preview.naturalW*k-w)/2, maxDy=(S.preview.naturalH*k-h)/2;
+  S.preview.dx=Math.max(-maxDx,Math.min(maxDx,S.preview.dx));
+  S.preview.dy=Math.max(-maxDy,Math.min(maxDy,S.preview.dy));
+}
+el("pvZoom").oninput=e=>{ S.preview.scale=+e.target.value; clampPreview(); layoutPreview(); };
+document.querySelectorAll("#pvSeg [data-dev]").forEach(b=>b.onclick=()=>{
+  S.preview.device=b.dataset.dev;
+  document.querySelectorAll("#pvSeg [data-dev]").forEach(x=>x.classList.toggle("active",x===b));
+  S.preview.scale=1; S.preview.dx=0; S.preview.dy=0; el("pvZoom").value=1; layoutPreview();
+});
+/* drag */
+(function(){
+  const dev=el("device");
+  let dragging=false,lx=0,ly=0;
+  dev.addEventListener("pointerdown",e=>{ dragging=true; lx=e.clientX; ly=e.clientY; dev.setPointerCapture(e.pointerId); });
+  dev.addEventListener("pointermove",e=>{
+    if(!dragging) return;
+    S.preview.dx+=e.clientX-lx; S.preview.dy+=e.clientY-ly;
+    lx=e.clientX; ly=e.clientY; clampPreview(); layoutPreview();
+  });
+  const end=()=>dragging=false;
+  dev.addEventListener("pointerup",end); dev.addEventListener("pointercancel",end);
+  dev.addEventListener("wheel",e=>{
+    if(!el("previewSheet").classList.contains("open")) return;
+    e.preventDefault();
+    S.preview.scale=Math.max(1,Math.min(3,S.preview.scale*(e.deltaY<0?1.07:0.93)));
+    el("pvZoom").value=S.preview.scale; clampPreview(); layoutPreview();
+  },{passive:false});
+})();
+/* pinch */
+(function(){
+  const dev=el("device");
+  let startDist=0,startScale=1;
+  dev.addEventListener("touchstart",e=>{
+    if(e.touches.length===2){
+      startDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      startScale=S.preview.scale;
+    }
+  },{passive:true});
+  dev.addEventListener("touchmove",e=>{
+    if(e.touches.length===2&&startDist){
+      e.preventDefault();
+      const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+      S.preview.scale=Math.max(1,Math.min(3,startScale*d/startDist));
+      el("pvZoom").value=S.preview.scale; clampPreview(); layoutPreview();
+    }
+  },{passive:false});
+})();
+function mspClose(){}
+
+el("pvExport").onclick=async ()=>{
+  const item=currentDetail; if(!item) return;
+  const {w,h}=deviceSize();
+  const img=el("pvImg");
+  async function corsImage(src){
+    return new Promise((res,rej)=>{
+      const im=new Image(); im.crossOrigin="anonymous";
+      im.onload=()=>res(im); im.onerror=rej; im.src=src;
+    });
+  }
+  const tryExport=(sourceImg)=>new Promise((resolve,reject)=>{
+    try{
+      const cover=Math.max(w/S.preview.naturalW, h/S.preview.naturalH);
+      const k=cover*S.preview.scale;
+      const visW=w/k, visH=h/k;
+      const cx=S.preview.naturalW/2 - S.preview.dx/k;
+      const cy=S.preview.naturalH/2 - S.preview.dy/k;
+      const sx=Math.max(0,Math.min(S.preview.naturalW-visW, cx-visW/2));
+      const sy=Math.max(0,Math.min(S.preview.naturalH-visH, cy-visH/2));
+      const outW=Math.min(S.preview.naturalW, Math.round(visW));
+      const outH=Math.min(S.preview.naturalH, Math.round(visH));
+      const c=document.createElement("canvas"); c.width=outW; c.height=outH;
+      const ctx=c.getContext("2d");
+      ctx.drawImage(sourceImg,sx,sy,visW,visH,0,0,outW,outH);
+      ctx.getImageData(0,0,1,1); // throws SecurityError if tainted
+      c.toBlob(blob=>{
+        if(!blob){ reject(); return; }
+        const name=suggestName(item,outW,outH).replace(/\.jpg$/,"-composed.jpg");
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(blob); a.download=name;
+        document.body.appendChild(a); a.click(); a.remove();
+        toast("Composed image saved — "+outW+"×"+outH,"ok");
+        resolve();
+      },"image/jpeg",0.93);
+    }catch(e){ reject(e); }
+  });
+  try{
+    await tryExport(img);
+  }catch{
+    // tainted canvas → retry with a CORS-clean copy of the same image
+    try{
+      const clean=await corsImage(img.currentSrc||img.src);
+      await tryExport(clean);
+    }catch{
+      toast("This host blocks cropping — downloading the original instead","");
+      download(item.full,suggestName(item,S.preview.naturalW,S.preview.naturalH));
+    }
+  }
+};
+
+/* =========================================================
+   SETTINGS
+   ========================================================= */
+function openSettings(){
+  // keyless
+  el("keylessList").innerHTML=`
+    <div class="source-item"><div style="flex:1"><div class="nm">✅ WallWidgy</div><div class="ds">Curated high-res · categories + colors · no key</div></div><span class="status-pill ok">active</span></div>
+    <div class="source-item"><div style="flex:1"><div class="nm">✅ Openverse</div><div class="ds">Web-wide open index · no key · rate-limited</div></div><span class="status-pill ok">active</span></div>
+    <div class="source-item"><div style="flex:1"><div class="nm">✅ Wikimedia Commons</div><div class="ds">Searchable archive · full-res originals · no key</div></div><span class="status-pill ok">active</span></div>
+    <div class="source-item"><div style="flex:1"><div class="nm">✅ Lorem Picsum</div><div class="ds">Real photography · crops to any resolution · no key</div></div><span class="status-pill ok">active</span></div>
+    <div class="source-item" id="customRow"><div style="flex:1"><div class="nm">📌 Your pasted links</div><div class="ds">Pinterest & any direct image URL — see below</div></div><span class="status-pill ok">${CUSTOM.length?CUSTOM.length+" saved":"empty"}</span></div>`;
+  const row=(name,ds,lsKey,statusOk)=>{
+    const val=store.get(lsKey,"")||"";
+    return `<div class="source-item"><div style="flex:1">
+      <div class="nm">${name}</div><div class="ds">${ds}</div>
+      <div class="key-row"><input type="text" placeholder="Paste API key…" value="${esc(val)}" data-key="${lsKey}"><span class="status-pill ${statusOk?"ok":"off"}">${statusOk?"connected":"offline"}</span></div>
+    </div></div>`;
+  };
+  el("keyedList").innerHTML=
+    row("Pexels",`4K originals · search · dominant color`,LS.pexels,haveKey.pexels())+
+    row("Unsplash",`Full-res · search + color filters`,LS.unsplash,haveKey.unsplash());
+  el("keyedList").querySelectorAll("[data-key]").forEach(inp=>{
+    inp.addEventListener("change",()=>{
+      store.set(inp.dataset.key, inp.value.trim());
+      toast("Key saved — unlock check…","ok");
+      buildChips(); renderSourceStatus();
+      openSettings();
+    });
+  });
+  const countLine=el("customCountLine");
+  countLine.textContent = CUSTOM.length ? `${CUSTOM.length} custom wallpaper${CUSTOM.length>1?"s":""} saved` : "No custom links yet";
+  el("addCustomBtn").onclick=()=>{
+    const raw=el("customUrlInput").value;
+    const urls=[...new Set((raw.match(/https?:\/\/\S+\.(?:jpe?g|png|webp)/gi)||[]).map(u=>u.replace(/[).,]+$/,"")))];
+    if(!urls.length){ toast("Paste an image address ending in .jpg / .png / .webp","err"); return; }
+    const added=[];
+    urls.forEach(url=>{
+      if(CUSTOM.some(c=>c.full===url)) return;
+      const item={
+        id:"cu-"+(url.length+Date.now()),
+        key:"cu"+url,
+        title:"Custom wallpaper",
+        author:"Added by you",
+        source:"Link", thumb:url, full:url, w:0, h:0,
+        page:"", canCrop:true
+      };
+      CUSTOM.unshift(item); added.push(item);
+    });
+    store.set(LS.custom,CUSTOM);
+    el("customUrlInput").value="";
+    countLine.textContent=`${CUSTOM.length} custom wallpaper${CUSTOM.length>1?"s":""} saved`;
+    toast(`Added ${added.length} wallpaper${added.length>1?"s":""} — check the grid`, "ok");
+    S.route="home"; location.hash="#"; buildChips(); resetAndLoad();
+    el("settingsModal").classList.remove("open"); document.body.style.overflow="";
+  };
+  el("settingsModal").classList.add("open");
+  document.body.style.overflow="hidden";
+}
+el("settingsBtn").onclick=openSettings;
+el("settingsModal").addEventListener("click",e=>{
+  if(e.target.closest("[data-close]")){ el("settingsModal").classList.remove("open"); document.body.style.overflow=""; }
+});
+
+/* =========================================================
+   INIT
+   ========================================================= */
+buildChips();
+renderFavCount();
+onHash();
+resetAndLoad();
+/* infinite scroll */
+const io=new IntersectionObserver(entries=>{
+  if(entries[0].isIntersecting && !S.done && !S.loading && S.route==="home" && S.items.length) loadMore();
+},{rootMargin:"900px"});
+new MutationObserver(()=>{ const lm=el("loadMoreBtn"); if(lm.style.display!=="none") io.observe(lm); })
+  .observe(el("loadMoreBtn"),{attributes:true});
+</script>
+</body>
+</html>
