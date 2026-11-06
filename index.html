@@ -463,6 +463,25 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
       </div>
       <div class="section-label" style="margin-top:1rem">Offline sources</div>
       <div class="source-list" id="keylessList"></div>
+      <div class="section-label" style="margin-top:1rem">Gallery sites (browse + import)</div>
+      <div class="hint">
+        These are beautiful gallery sites, but they block browsers from calling them
+        directly (no CORS). Browse them in a new tab, then right-click any wallpaper →
+        <b>“Copy image address”</b> and paste it into the box below — it becomes a
+        WallVault wallpaper instantly.
+      </div>
+      <div class="hint" style="display:flex;flex-direction:column;gap:.35rem;margin-top:.4rem">
+        <a href="https://wallhaven.cc/" target="_blank" rel="noopener">wallhaven.cc — huge searchable collection</a>
+        <a href="https://hdqwalls.com/" target="_blank" rel="noopener">hdqwalls.com</a>
+        <a href="https://www.hdwallpapers.in/" target="_blank" rel="noopener">hdwallpapers.in</a>
+        <a href="https://wallpaperscraft.com/" target="_blank" rel="noopener">wallpaperscraft.com</a>
+        <a href="https://www.wallpaperhub.app/" target="_blank" rel="noopener">wallpaperhub.app</a>
+        <a href="https://alphacoders.com/" target="_blank" rel="noopener">alphacoders.com</a>
+        <a href="https://www.wallpaperflare.com/" target="_blank" rel="noopener">wallpaperflare.com</a>
+        <a href="https://www.wallpapers.com/wallpapers" target="_blank" rel="noopener">wallpapers.com</a>
+        <a href="https://github.com/dharmx/walls/tree/main" target="_blank" rel="noopener">dharmx/walls ← works as a live source ✅</a>
+        <a href="https://gitlab.manjaro.org/artwork/wallpapers" target="_blank" rel="noopener">manjaro wallpapers ⇢ GitLab (no CORS)</a>
+      </div>
       <div class="section-label" style="margin-top:1rem">Pinterest &amp; direct links</div>
       <div class="hint">
         Pinterest doesn't allow browsers to call its API, but its image files do work here:
@@ -571,6 +590,7 @@ function activeSources(){
   s.push("openverse");
   s.push("wikimedia");
   s.push("picsum");
+  s.push("walls");
   if(haveKey.pexels()) s.push("pexels");
   if(haveKey.unsplash()) s.push("unsplash");
   if(S.query || CUSTOM.length) s.push("link");
@@ -701,6 +721,59 @@ async function fetchPicsum(page){
   }));
 }
 
+/* --- dharmx/walls GitHub repo: 1600+ curated wallpapers, keyless, category folders --- */
+const WALLS_CDN="https://cdn.jsdelivr.net/gh/dharmx/walls@main/";
+const WALLS_MAP={
+  abstract:["abstract"],
+  anime:["anime","manga","evangelion"],
+  architecture:["architecture","interior","industrial"],
+  art:["painting","digital","monochrome","retro","dreamcore","weirdcore","pixel","poly","stalenhag"],
+  minimal:["minimal","centered","calm","basalt","geometry"],
+  nature:["nature","flowers","mountain","aerial","fauna","cold","fogsmoke","wave","cherry"],
+  tech:["devicons","logo","apeiros","radium","lightbulb","jackb"],
+  dark:["nord","gruvbox","solarized","decay","apocalypse"],
+  textures:["tile","paper","wave"]
+};
+const WALLS_EXCLUDE=new Set(["spam","unsorted"]);
+
+async function loadWallsIndex(){
+  const c=store.get("wv_walls_cache",null);
+  if(c&&Date.now()-c.t<3600e3&&Array.isArray(c.list)&&c.list.length) return c.list;
+  const d=await jget("https://api.github.com/repos/dharmx/walls/git/trees/main?recursive=1");
+  const list=(d.tree||[]).map(t=>t.path).filter(p=>/\.(jpe?g|png|webp)$/i.test(p)&&!WALLS_EXCLUDE.has(p.split("/")[0]));
+  store.set("wv_walls_cache",{t:Date.now(),list});
+  return list;
+}
+const hashStr=s=>{let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)};
+
+async function fetchWallsRepo(page){
+  if(S.route!=="home") return [];
+  if(S.color) return []; // no color metadata in the repo
+  let paths=await loadWallsIndex();
+  const q=S.query.trim().toLowerCase();
+  const cat=S.category==="all"?null:S.category;
+  if(cat){
+    const folders=WALLS_MAP[cat];
+    if(!folders) return []; // this chip isn't served by the repo
+    paths=paths.filter(p=>folders.includes(p.split("/")[0]));
+  }
+  if(q){
+    const tokens=q.split(/\s+/).filter(Boolean);
+    paths=paths.filter(p=>tokens.every(t=>p.toLowerCase().includes(t)));
+  }
+  // stable deterministic shuffle so pages vary without duplicates
+  paths=paths.map(p=>({p,k:hashStr(p)})).sort((a,b)=>a.k-b.k).map(x=>x.p);
+  return paths.slice((page-1)*40,page*40).map(p=>({
+    id:"gw-"+hashStr(p),
+    title:(p.split("/").pop()||"Wallpaper").replace(/\.\w+$/,"").replace(/_/g," "),
+    author:"dharmx/walls · GitHub",
+    source:"walls repo",
+    thumb:WALLS_CDN+ /*p split safety*/ p, full:WALLS_CDN+p, w:0,h:0,
+    page:"https://github.com/dharmx/walls/tree/main/"+p.split("/")[0],
+    canCrop:true, key:"gw"+p
+  }));
+}
+
 /* --- Pexels --- */
 async function fetchPexels(page,searchOnly){
   if(!haveKey.pexels()) return [];
@@ -789,6 +862,7 @@ async function fetchPage(page){
     if(name==="openverse") return fetchOpenverse(page).catch(e=>{console.warn(e);return[]});
     if(name==="wikimedia") return fetchWikimedia(page).catch(e=>{console.warn(e);return[]});
     if(name==="picsum") return fetchPicsum(page).catch(e=>{console.warn(e);return[]});
+    if(name==="walls") return fetchWallsRepo(page).catch(e=>{console.warn(e);return[]});
     if(name==="pexels") return fetchPexels(page).catch(e=>{console.warn(e);return[]});
     if(name==="unsplash") return fetchUnsplash(page).catch(e=>{console.warn(e);return[]});
     return Promise.resolve([]);
@@ -910,9 +984,10 @@ async function loadMore(force){
     S.items.push(...fresh);
     renderGrid(fresh,true);
     if(fresh.length===0){
-      // keyed sources paginate properly: stop on first empty page.
-      // wallwidgy is random + capped: give it a few extra pages before ending.
-      if(haveKey.pexels() || haveKey.unsplash() || S.page>=5) S.done=true;
+      // paginating sources (keys, walls repo) stop on first empty page;
+      // random/cache-y sources (wallwidgy etc.) get a few extra tries.
+      const paginated = haveKey.pexels() || haveKey.unsplash() || activeSources().includes("walls");
+      if(paginated || S.page>=5) S.done=true;
     }
     S.page++;
     updateResultHead();
@@ -937,10 +1012,15 @@ function renderSourceStatus(){
 /* =========================================================
    FILTER BAR
    ========================================================= */
+function supportedCategories(){
+  const set=new Set(["all","abstract","anime","architecture","art","cars","minimal","nature","tech","dark","textures"]); // wallwidgy + walls repo baseline
+  if(haveKey.pexels()||haveKey.unsplash()) CATEGORIES.forEach(c=>set.add(c)); // full search unlocks the rest
+  return CATEGORIES.filter(c=>set.has(c));
+}
+
 function buildChips(){
   const catRow=el("catRow"), colorRow=el("colorRow");
-  const cVisible = haveKey.pexels()||haveKey.unsplash();
-  const cats = [...CATEGORIES].filter(c=>c==="all"||!WW_ONLY_CATS.has(c)||cVisible);
+  const cats = supportedCategories();
   catRow.innerHTML='<span class="row-label">Category</span>'+
     cats.map(c=>`<button class="chip ${S.category===c?"active":""}" data-cat="${c}">${c==="all"?"All":c[0].toUpperCase()+c.slice(1)}</button>`).join("");
   catRow.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
@@ -1309,6 +1389,7 @@ function openSettings(){
     <div class="source-item"><div style="flex:1"><div class="nm">✅ Openverse</div><div class="ds">Web-wide open index · no key · rate-limited</div></div><span class="status-pill ok">active</span></div>
     <div class="source-item"><div style="flex:1"><div class="nm">✅ Wikimedia Commons</div><div class="ds">Searchable archive · full-res originals · no key</div></div><span class="status-pill ok">active</span></div>
     <div class="source-item"><div style="flex:1"><div class="nm">✅ Lorem Picsum</div><div class="ds">Real photography · crops to any resolution · no key</div></div><span class="status-pill ok">active</span></div>
+    <div class="source-item"><div style="flex:1"><div class="nm">✅ walls repo (GitHub)</div><div class="ds">1600+ curated 4K packs · 9 category folders · no key</div></div><span class="status-pill ok">active</span></div>
     <div class="source-item" id="customRow"><div style="flex:1"><div class="nm">📌 Your pasted links</div><div class="ds">Pinterest & any direct image URL — see below</div></div><span class="status-pill ok">${CUSTOM.length?CUSTOM.length+" saved":"empty"}</span></div>`;
   const row=(name,ds,lsKey,statusOk)=>{
     const val=store.get(lsKey,"")||"";
