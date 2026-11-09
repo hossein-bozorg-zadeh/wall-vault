@@ -6,6 +6,10 @@
 <title>WallVault — High-Resolution Wallpapers</title>
 <meta name="description" content="A curated + web-gathered library of high-resolution wallpapers. Search, filter, favorite, preview and download in 4K.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%236d5cff'/%3E%3Cpath d='M24 72 40 30l14 26 12-16 10 32z' fill='%23fff'/%3E%3Ccircle cx='66' cy='30' r='8' fill='%23ffd166'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://images.weserv.nl" crossorigin>
+<link rel="preconnect" href="https://api.github.com" crossorigin>
+<link rel="dns-prefetch" href="https://picsum.photos">
+<link rel="dns-prefetch" href="https://upload.wikimedia.org">
 <style>
 :root{
   --bg:#0b0d12; --bg2:#11141b; --card:#171b24; --card-hover:#1d2230;
@@ -819,6 +823,68 @@ async function loadWallsIndex(){
 }
 const hashStr=s=>{let h=7;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return Math.abs(h)};
 
+/* ---------- thumbnail loader queue ----------
+   Proxy thumbs (weserv) are fetched max 8 at a time with little gaps —
+   bursts get rate-limited otherwise. Thumbs appear progressively as each
+   one completes instead of one big freeze. */
+const TQ={q:[],active:0,max:8};
+function thumbEnqueue(img,url,hi){
+  TQ.q.push({img,url,hi});
+  thumbPump();
+}
+function thumbPump(){
+  if(TQ.q.some(j=>j.hi)) TQ.q.sort((a,b)=>(b.hi?1:0)-(a.hi?1:0)); // first-viewport thumbs jump the queue
+  while(TQ.active<TQ.max && TQ.q.length){
+    const {img,url}=TQ.q.shift();
+    if(!img||!img.isConnected) continue;
+    TQ.active++;
+    (async()=>{
+      try{
+        const r=await fetch(url,{mode:"cors"});
+        if(!r.ok) throw 0;
+        const b=await r.blob();
+        if(!img.isConnected) throw 0;
+        img.src=URL.createObjectURL(b);
+      }catch(e){
+        if(img.isConnected) img.src=url; // fall back to a direct load
+      }finally{
+        TQ.active--;
+        setTimeout(thumbPump,50);
+      }
+    })();
+  }
+}
+
+/* ---------- fast thumbnails ----------
+   raw 4K files (WallWidgy raw.githubusercontent, walls jsDelivr) are served
+   resized (+webp) through the free weserv image CDN — cuts a 10 MB thumb
+   down to ~80 KB without losing screen quality. Full-size downloads stay
+   untouched. */
+function pixify(url,w){
+  try{
+    const u=new URL(url);
+    if(!/^(raw\.githubusercontent\.com|cdn\.jsdelivr\.net)$/.test(u.hostname)) return url;
+    return `https://images.weserv.nl/?url=${encodeURIComponent(url)}&w=${w}&q=72&output=webp&fit=cover&we&pool=alpha`;
+  }catch{ return url; }
+}
+/* render the batch as soon as sources answer or ~3.5s passes; late results
+   park in the carry buffer so nothing is lost */
+function withSoftTimeout(promise,ms){
+  return new Promise(res=>{
+    let settled=false;
+    const done=v=>{ if(!settled){ settled=true; res(v); } };
+    promise.then(done).catch(()=>done([]));
+    setTimeout(()=>{
+      if(!settled){
+        done([]);
+        promise.then(items=>{
+          try{ S.carry.push(...items.filter(matchesOrient)); }catch{}
+        }).catch(()=>{});
+      }
+    },ms);
+  });
+}
+
 async function fetchWallsRepo(page){
   if(S.route!=="home") return [];
   if(S.color) return []; // no color metadata in the repo
@@ -929,18 +995,33 @@ function matchesOrient(it){
   return S.orient==="desktop" ? it.w>=it.h : it.h>=it.w;
 }
 
+/* render the batch as soon as sources answer or ~3.5s passes; stragglers
+   park in the carry buffer so nothing is lost */
 async function fetchPage(page){
-  const jobs = activeSources().map(name=>{
-    if(name==="wallwidgy") return fetchWallwidgy(page).catch(e=>{console.warn(e);return[]});
-    if(name==="openverse") return fetchOpenverse(page).catch(e=>{console.warn(e);return[]});
-    if(name==="wikimedia") return fetchWikimedia(page).catch(e=>{console.warn(e);return[]});
-    if(name==="picsum") return fetchPicsum(page).catch(e=>{console.warn(e);return[]});
-    if(name==="walls") return fetchWallsRepo(page).catch(e=>{console.warn(e);return[]});
-    if(name==="pexels") return fetchPexels(page).catch(e=>{console.warn(e);return[]});
-    if(name==="unsplash") return fetchUnsplash(page).catch(e=>{console.warn(e);return[]});
-    return Promise.resolve([]);
+  const names = activeSources();
+  const fetchers={
+    wallwidgy:fetchWallwidgy, openverse:fetchOpenverse, wikimedia:fetchWikimedia,
+    picsum:fetchPicsum, walls:fetchWallsRepo, pexels:fetchPexels, unsplash:fetchUnsplash
+  };
+  const token=S.loadToken;
+  const results=new Array(names.length);
+  let resolved=0;
+  const jobs = names.map((name,i)=>{
+    const f=fetchers[name] || (()=>Promise.resolve([]));
+    return f.call(null,page).then(v=>{results[i]=v;resolved++;}).catch(e=>{console.warn(e);results[i]=[];resolved++;});
   });
-  let all = (await Promise.all(jobs)).flat();
+  const allSettled = () => Promise.all(jobs).then(()=>{});
+  await Promise.race([ allSettled(), new Promise(res=>setTimeout(res,3500)) ]);
+  let all = results.filter(Boolean).flat();
+  // whatever is still in flight lands in the carry buffer when it arrives
+  if(resolved<names.length){
+    names.forEach((name,i)=>jobs[i].then(()=>{
+      if(token!==S.loadToken || !results[i] || !results[i].length) return;
+      S.carry.push(...results[i].filter(matchesOrient));
+      // early session: surface the delayed content right away
+      setTimeout(()=>{ if(!S.loading && S.items.length<60) maybeLoadMore(); },200);
+    }));
+  }
   if(page===1 && !S.query) all = [...CUSTOM, ...all.filter(x=>x.source!=="Link")];
   all = all.filter(matchesOrient);
   /* fill exactly 40 per batch; items beyond 40 are carried to the next
@@ -975,12 +1056,15 @@ async function toggleFav(item){
   updateDetailFav();
 }
 
-function cardHTML(item){
+function cardHTML(item,fast){
   const fav = isFav(item);
   const res = item.w?"style=\"aspect-ratio:"+item.w+"/"+item.h+"\"":"";
-  return `<article class="card" data-key="${esc(item.key)}" ${res}>
+  const proxied = pixify(item.thumb,640) !== item.thumb ? pixify(item.thumb,640) : "";
+  return `<article class="card" ${fast?'data-hi="1"':''} data-key="${esc(item.key)}" ${res}>
     <div class="shimmer"></div>
-    <img loading="lazy" src="${esc(item.thumb)}" alt="${esc(item.title)}">
+    <img decoding="async" ${proxied
+      ? `data-srcprox="${esc(proxied)}"`
+      : (!fast ? `loading="lazy" `:`fetchpriority="high" loading="eager" `)+`src="${esc(item.thumb)}"`} alt="${esc(item.title)}">
     <div class="card-actions">
       <button class="mini-btn fav-mini ${fav?"faved":""}" title="Favorite" data-fav>${FAV_SVG}</button>
       <button class="mini-btn" title="Download original" data-dl>
@@ -1000,8 +1084,11 @@ function cardHTML(item){
 
 function wireCard(card,item){
   const img=card.querySelector("img");
-  img.onload=()=>{img.classList.add("loaded");card.querySelector(".shimmer")?.remove(); if(!item.w&&img.naturalWidth>0){item.w=img.naturalWidth;item.h=img.naturalHeight;card.querySelector(".res-tag").textContent=img.naturalWidth+"×"+img.naturalHeight;}};
+  const onImg=()=>{img.classList.add("loaded");card.querySelector(".shimmer")?.remove();if(!item.w&&img.naturalWidth>0){item.w=img.naturalWidth;item.h=img.naturalHeight;card.querySelector(".res-tag").textContent=img.naturalWidth+"×"+img.naturalHeight;}};
+  img.onload=onImg;
   img.onerror=()=>{card.remove(); iAmEmpty();};
+  const proxied=img.dataset.srcprox;
+  if(proxied) thumbEnqueue(img,proxied,card.dataset.hi==="1");
   card.onclick=e=>{
     if(e.target.closest("[data-fav]")){ toggleFav(item); return; }
     if(e.target.closest("[data-dl]")){ download(item.full, suggestName(item,item.w||0,item.h||0)); return; }
@@ -1010,7 +1097,7 @@ function wireCard(card,item){
 }
 
 function renderGrid(items,append){
-  const html = items.map(cardHTML).join("");
+  const html = items.map((item,i)=>cardHTML(item,!append&&i<12)).join("");
   if(append){ grid.insertAdjacentHTML("beforeend",html); }
   else { grid.innerHTML=html; }
   [...grid.children].filter(c=>c.classList.contains("card")).forEach(card=>{
@@ -1298,7 +1385,7 @@ function openDetail(item){
   const img=el("dImg");
   const src=item.thumb;
   img.onerror=()=>{ img.src=item.full; };
-  img.src=""; img.src=src; // re-trigger so cached loads stay correct
+  img.src=""; img.src=pixify(item.full||item.thumb,1280); // re-trigger so cached loads stay correct
   img.onclick=null;
   // unlock natural dims for card-side info
   if(!item.w){ const probe=new Image(); probe.onload=()=>{ item.w=probe.naturalWidth; item.h=probe.naturalHeight; el("dMeta").innerHTML=`<b>By</b> ${esc(item.author||"Unknown")}<br><b>Resolution</b> ${item.w}×${item.h}<br>${item.page?`<a href="${esc(item.page)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none;font-weight:600">View source page ↗</a>`:""}`; buildDownloadButtons(item); }; probe.src=src; }
@@ -1367,7 +1454,7 @@ function openPreview(){
     requestAnimationFrame(layoutPreview); // re-run after the browser's layout settles
   };
   pv.onerror=()=>{ pv.onload=onReady; pv.src=item.full; };
-  const src=item.thumb;
+  const src=pixify(item.full||item.thumb,1280);
   pv.onload=onReady;
   if(pv.src===src && pv.complete && pv.naturalWidth>0) onReady(); // already cached — no load event will fire
   else pv.src=src;
