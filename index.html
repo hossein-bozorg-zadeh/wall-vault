@@ -15,6 +15,7 @@
   --bg:#0b0d12; --bg2:#11141b; --card:#171b24; --card-hover:#1d2230;
   --line:#242a38; --text:#e8ebf3; --muted:#8b93a7; --accent:#6d5cff; --accent2:#22d3ee;
   --danger:#f43f5e; --shadow:0 10px 30px rgba(0,0,0,.45); --radius:14px;
+  --col-min:260px; --card-rad:14px;
 }
 html[data-theme="light"]{
   --bg:#f5f6fa; --bg2:#ffffff; --card:#ffffff; --card-hover:#f2f4fb;
@@ -52,7 +53,7 @@ header{
   width:34px;height:34px;border-radius:10px;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   display:grid;place-items:center;font-size:1rem;
-  box-shadow:0 4px 14px rgba(109,92,255,.4);
+  box-shadow:0 4px 14px rgba(var(--accent-rgb),.4);
 }
 .searchbox{
   flex:1 1 260px;max-width:560px;position:relative;display:flex;align-items:center;
@@ -63,7 +64,7 @@ header{
   border:1px solid var(--line);background:var(--bg2);color:var(--text);
   outline:none;transition:border .2s, box-shadow .2s;
 }
-.searchbox input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(109,92,255,.18)}
+.searchbox input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.18)}
 .searchbox .clear-q{
   position:absolute;right:.55rem;color:var(--muted);font-size:1.05rem;
   display:none;padding:2px 6px;border-radius:8px;
@@ -121,7 +122,7 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
   background:var(--card);color:var(--text);font-size:.85rem;font-weight:600;transition:.18s;
   min-width:120px;justify-content:space-between;
 }
-.cat-btn:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(109,92,255,.14)}
+.cat-btn:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(var(--accent-rgb),.14)}
 .cat-menu-wrap.open .cat-btn{border-color:var(--accent);background:var(--accent);color:#fff}
 .cat-menu-wrap.open .cat-btn svg{transform:rotate(180deg)}
 .cat-panel{
@@ -142,7 +143,7 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
   padding:.5rem .65rem;border-radius:9px;font-size:.83rem;text-align:left;transition:.14s;
 }
 .cat-opt:hover{background:var(--card-hover)}
-.cat-opt.on{background:rgba(109,92,255,.16);color:var(--accent);font-weight:600}
+.cat-opt.on{background:rgba(var(--accent-rgb),.16);color:var(--accent);font-weight:600}
 .cat-opt.dim{opacity:.45;cursor:not-allowed}
 .cat-opt .lock{font-size:.7rem}
 @media(max-width:640px){
@@ -168,10 +169,15 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.12);color:#fff}
 .grid{
-  columns:6 250px;column-gap:14px;
+  columns:6 var(--col-min);column-gap:14px;
 }
+.grid.uniform{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--col-min),1fr));column-gap:12px;
+}
+.grid.uniform .card{margin:0;aspect-ratio:3/4;position:relative}
+.grid.uniform .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .card{
-  break-inside:avoid;margin-bottom:14px;position:relative;border-radius:var(--radius);
+  break-inside:avoid;margin-bottom:14px;position:relative;border-radius:var(--card-rad);
   overflow:hidden;background:var(--card);cursor:pointer;
   box-shadow:0 3px 10px rgba(0,0,0,.25);transition:transform .2s, box-shadow .2s;
 }
@@ -268,7 +274,7 @@ footer{
 .sheet .meta b{color:var(--text);font-weight:600}
 .src-pill{
   display:inline-block;font-size:.66rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
-  padding:.25rem .55rem;border-radius:6px;background:rgba(109,92,255,.15);color:var(--accent);
+  padding:.25rem .55rem;border-radius:6px;background:rgba(var(--accent-rgb),.15);color:var(--accent);
 }
 .color-swatch{display:flex;align-items:center;gap:.5rem;font-size:.8rem;color:var(--muted)}
 .color-swatch .sw{width:20px;height:20px;border-radius:6px;border:1px solid var(--line)}
@@ -291,7 +297,7 @@ footer{
 .pv-stage{
   flex:1;display:grid;place-items:center;padding:1.5rem;overflow:hidden;
   background:
-    radial-gradient(1200px 500px at 50% -10%,rgba(109,92,255,.13),transparent);
+    radial-gradient(1200px 500px at 50% -10%,rgba(var(--accent-rgb),.13),transparent);
 }
 .device{
   position:relative;border-radius:38px;border:10px solid #101319;outline:1px solid rgba(255,255,255,.09);
@@ -331,6 +337,12 @@ footer{
 .status-pill{font-size:.68rem;font-weight:700;padding:.22rem .55rem;border-radius:999px;white-space:nowrap}
 .status-pill.ok{background:rgba(34,211,238,.15);color:var(--accent2)}
 .status-pill.off{background:rgba(139,147,167,.14);color:var(--muted)}
+.ap-row{display:flex;align-items:center;gap:.6rem;font-size:.8rem;color:var(--muted);margin:.45rem 0;flex-wrap:wrap}
+.ap-row .seg{margin-left:auto}
+.ap-accents{display:flex;gap:.45rem;margin-left:auto}
+.acc-dot{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:.15s;padding:0}
+.acc-dot:hover{transform:scale(1.14)}
+.acc-dot.on{border-color:var(--text)}
 .source-list{display:flex;flex-direction:column;gap:.65rem;margin-top:.5rem}
 .source-item{
   display:flex;align-items:center;gap:.7rem;padding:.75rem .9rem;border:1px solid var(--line);
@@ -554,6 +566,29 @@ footer{
         <a href="https://www.wallpapers.com/wallpapers" target="_blank" rel="noopener">wallpapers.com</a>
         <a href="https://github.com/dharmx/walls/tree/main" target="_blank" rel="noopener">dharmx/walls ← works as a live source ✅</a>
         <a href="https://gitlab.manjaro.org/artwork/wallpapers" target="_blank" rel="noopener">manjaro wallpapers ⇢ GitLab (no CORS)</a>
+      </div>
+      <div class="section-label" style="margin-top:1rem">Your layout</div>
+      <div class="ap-row"><span>Card density</span>
+        <div class="seg" id="apDensity">
+          <button data-ap-density="compact">Compact</button>
+          <button data-ap-density="balanced">Balanced</button>
+          <button data-ap-density="cozy">Cozy</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Grid style</span>
+        <div class="seg" id="apView">
+          <button data-ap-view="masonry">Masonry</button>
+          <button data-ap-view="uniform">Uniform</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Corners</span>
+        <div class="seg" id="apRadius">
+          <button data-ap-radius="round">Round</button>
+          <button data-ap-radius="sharp">Sharp</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Accent color</span>
+        <div class="ap-accents" id="apAccent"></div>
       </div>
       <div class="section-label" style="margin-top:1rem">Pinterest &amp; direct links</div>
       <div class="hint">
@@ -1654,10 +1689,54 @@ el("settingsModal").addEventListener("click",e=>{
   if(e.target.closest("[data-close]")){ el("settingsModal").classList.remove("open"); document.body.style.overflow=""; }
 });
 
+/* ---------- layout / appearance preferences ---------- */
+const DENSITY={compact:"210px",balanced:"260px",cozy:"340px"};
+const ACCENTS={
+  violet:["#6d5cff","#22d3ee"], cyan:["#0ea5e9","#a855f7"], pink:["#ec4899","#f59e0b"],
+  green:["#22c55e","#22d3ee"], amber:["#f59e0b","#ef4444"], rose:["#f43f5e","#6d5cff"]
+};
+const AP={
+  view:store.get("wv_view","masonry"),
+  density:store.get("wv_density","balanced"),
+  accent:store.get("wv_accent","violet"),
+  radius:store.get("wv_radius","round")
+};
+function applyAppearance(){
+  document.documentElement.style.setProperty("--col-min",DENSITY[AP.density]||"260px");
+  document.documentElement.style.setProperty("--card-rad",AP.radius==="sharp"?"6px":"16px");
+  const acc=ACCENTS[AP.accent]||ACCENTS.violet;
+  document.documentElement.style.setProperty("--accent",acc[0]);
+  document.documentElement.style.setProperty("--accent2",acc[1]);
+  document.documentElement.style.setProperty("--accent-rgb",
+    acc[0].match(/^#(..)(..)(..)$/).slice(1).map(h=>parseInt(h,16)).join(","));
+  el("grid").classList.toggle("uniform",AP.view==="uniform");
+}
+function buildAppearanceUI(){
+  const paint=()=>{ // set active states
+    el("apDensity").querySelectorAll("[data-ap-density]").forEach(b=>b.classList.toggle("active",b.dataset.apDensity===AP.density));
+    el("apView").querySelectorAll("[data-ap-view]").forEach(b=>b.classList.toggle("active",b.dataset.apView===AP.view));
+    el("apRadius").querySelectorAll("[data-ap-radius]").forEach(b=>b.classList.toggle("active",b.dataset.apRadius===AP.radius));
+    el("apAccent").querySelectorAll("[data-ap-accent]").forEach(b=>b.classList.toggle("on",b.dataset.apAccent===AP.accent));
+  };
+  el("apAccent").innerHTML=Object.keys(ACCENTS).map(k=>
+    `<button class="acc-dot" data-ap-accent="${k}" style="background:${ACCENTS[k][0]}" title="${k}"></button>`).join("");
+  el("settingsModal").addEventListener("click",e=>{
+    const t=e.target;
+    const pick=(attr,cb)=>{const btn=t.closest(`[${attr}]`); if(!btn) return; cb(btn.getAttribute(attr)); paint();};
+    pick("data-ap-view",v=>{AP.view=v;store.set("wv_view",v);applyAppearance();});
+    pick("data-ap-density",v=>{AP.density=v;store.set("wv_density",v);applyAppearance();});
+    pick("data-ap-radius",v=>{AP.radius=v;store.set("wv_radius",v);applyAppearance();});
+    pick("data-ap-accent",v=>{AP.accent=v;store.set("wv_accent",v);applyAppearance();});
+  });
+  paint();
+}
+applyAppearance();
+
 /* =========================================================
    INIT
    ========================================================= */
 buildChips();
+buildAppearanceUI();
 renderFavCount();
 onHash();
 resetAndLoad();
