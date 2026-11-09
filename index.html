@@ -540,7 +540,30 @@ footer{
     <button class="close-x" data-close>✕</button>
     <div class="side">
       <h3 style="font-size:1.15rem">⚙️ Settings</h3>
-      <div class="hint">
+      <div class="section-label" style="margin-top:.6rem">Your layout</div>
+      <div class="ap-row"><span>Card density</span>
+        <div class="seg" id="apDensity">
+          <button data-ap-density="compact">Compact</button>
+          <button data-ap-density="balanced">Balanced</button>
+          <button data-ap-density="cozy">Cozy</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Grid style</span>
+        <div class="seg" id="apView">
+          <button data-ap-view="masonry">Masonry</button>
+          <button data-ap-view="uniform">Uniform</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Corners</span>
+        <div class="seg" id="apRadius">
+          <button data-ap-radius="round">Round</button>
+          <button data-ap-radius="sharp">Sharp</button>
+        </div>
+      </div>
+      <div class="ap-row"><span>Accent color</span>
+        <div class="ap-accents" id="apAccent"></div>
+      </div>
+      <div class="hint" style="margin-top:.9rem">
         WallVault already works with <b>zero keys</b> using open sources.
         Add a free <b>Pexels</b> and/or <b>Unsplash</b> key to unlock full-text search
         against millions of images at up to 4K+ original resolution. Keys are stored
@@ -566,29 +589,6 @@ footer{
         <a href="https://www.wallpapers.com/wallpapers" target="_blank" rel="noopener">wallpapers.com</a>
         <a href="https://github.com/dharmx/walls/tree/main" target="_blank" rel="noopener">dharmx/walls ← works as a live source ✅</a>
         <a href="https://gitlab.manjaro.org/artwork/wallpapers" target="_blank" rel="noopener">manjaro wallpapers ⇢ GitLab (no CORS)</a>
-      </div>
-      <div class="section-label" style="margin-top:1rem">Your layout</div>
-      <div class="ap-row"><span>Card density</span>
-        <div class="seg" id="apDensity">
-          <button data-ap-density="compact">Compact</button>
-          <button data-ap-density="balanced">Balanced</button>
-          <button data-ap-density="cozy">Cozy</button>
-        </div>
-      </div>
-      <div class="ap-row"><span>Grid style</span>
-        <div class="seg" id="apView">
-          <button data-ap-view="masonry">Masonry</button>
-          <button data-ap-view="uniform">Uniform</button>
-        </div>
-      </div>
-      <div class="ap-row"><span>Corners</span>
-        <div class="seg" id="apRadius">
-          <button data-ap-radius="round">Round</button>
-          <button data-ap-radius="sharp">Sharp</button>
-        </div>
-      </div>
-      <div class="ap-row"><span>Accent color</span>
-        <div class="ap-accents" id="apAccent"></div>
       </div>
       <div class="section-label" style="margin-top:1rem">Pinterest &amp; direct links</div>
       <div class="hint">
