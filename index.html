@@ -413,6 +413,9 @@ footer{
       <button class="clear-q" id="clearQ" title="Clear">✕</button>
     </div>
     <div class="header-actions">
+      <button class="icon-btn" id="refreshBtn" title="Refresh — load a fresh mix of wallpapers">
+        <svg id="refreshIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 3v6h-6"/></svg>
+      </button>
       <button class="icon-btn" id="randomBtn" title="Surprise me — random wallpaper">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h4l3-3 4 4m0 0 2-2 2-2m-4 4 3.5 5.5M3 17h5m0 0-2-2m2 2-2 2m8-2c2 0 3.5 1 4.5 3L21 16"/></svg>
       </button>
@@ -652,6 +655,8 @@ const S = {
   loadToken:0,                  // discard stale page loads when filters change
   carry:[],                     // extra items fetched but not yet shown (fills the next 40-batch)
   done:false,                   // no more pages
+  shake:0,                      // bumped by ↻ Refresh — shifts which content sources sample
+  wwBase:0,                     // WallWidgy browse rotation start (re-randomized on refresh)
   preview:{ scale:1, dx:0, dy:0, device:"phone", naturalW:0, naturalH:0 },
 };
 const el = id => document.getElementById(id);
@@ -721,13 +726,12 @@ async function fetchWallwidgy(page){
     ? []
     : (S.category==="all"
         // browse mode: rotate through 2 categories per batch → ~20 items
-        ? (()=>{const off=((page-1)*2)%WW_CATS.length; return WW_CATS.slice(off,off+2);})()
+        ? (()=>{const off=(S.wwBase+((page-1)*2))%WW_CATS.length; return WW_CATS.slice(off,off+2);})()
         : [S.category]);
   if(!cats.length) return [];
   const one = async (cat)=>{
     const p = new URLSearchParams({ count:"10" });
     if(cat!=="all") p.set("category",cat);
-    if(S.color) p.set("color",S.color);
     if(S.orient==="desktop") p.set("type","desktop");
     if(S.orient==="mobile") p.set("type","mobile");
     try{
@@ -736,7 +740,8 @@ async function fetchWallwidgy(page){
     }catch(e){ return []; }
   };
   const perCat = await Promise.all(cats.map(one));
-  const urls = perCat.flat();
+  let urls = perCat.flat();
+  if(S.color) urls = urls.filter(u=>matchesColor((u.split("/").pop()||"").replace(/\.\w+$/,"")));
   if(urls.length===0) return [];
   // central dedupe happens in fetchPage
   return urls.map((u,i)=>{
@@ -760,7 +765,9 @@ async function fetchOpenverse(page){
   if(S.category!=="all" && !hasQuery) return []; // openverse is search-based; skip idle browse
   if(!hasQuery && !S.color) return [];
   const p = new URLSearchParams({
-    q: S.query || S.category.split("-").join(" "),
+    q: S.query
+      || (S.category!=="all" ? categoryQuery(S.category) : "") // color-only browse: search the color word itself
+      || S.color,
     page:String(page), page_size:"20",
     extension:"jpg,png,webp",
   });
@@ -783,7 +790,7 @@ async function fetchOpenverse(page){
 async function fetchWikimedia(page){
   if(S.route!=="home") return [];
   const q = S.query || (S.category!=="all" ? categoryQuery(S.category) : "");
-  if(!q || S.color) return []; // Commons has no color filter; skip so results stay honest
+  if(!q) return [];
   const params = new URLSearchParams({
     action:"query", format:"json", origin:"*",
     generator:"search",
@@ -811,14 +818,14 @@ async function fetchWikimedia(page){
       page:"https://commons.wikimedia.org/wiki/"+encodeURIComponent(pg.title||""),
       canCrop:true, key:"wm"+pg.pageid
     };
-  }).filter(Boolean);
+  }).filter(x=>x && matchesColor(x.title));
 }
 
 /* --- Lorem Picsum: keyless real photography, paginated, any-resolution --- */
 async function fetchPicsum(page){
   if(S.route!=="home") return [];
-  if(S.query || S.category!=="all") return []; // browse-only source
-  const data = await jget(`https://picsum.photos/v2/list?page=${page}&limit=20`);
+  if(S.query || S.category!=="all" || S.color) return []; // picsum has no color metadata — skip when a color is picked
+  const data = await jget(`https://picsum.photos/v2/list?page=${page + S.shake*4}&limit=20`);
   return (data||[]).map((im,ix)=>({
     id:"pc-"+im.id,
     title: "Photo "+im.id,
@@ -922,7 +929,6 @@ function withSoftTimeout(promise,ms){
 
 async function fetchWallsRepo(page){
   if(S.route!=="home") return [];
-  if(S.color) return []; // no color metadata in the repo
   let paths=await loadWallsIndex();
   const q=S.query.trim().toLowerCase();
   const cat=S.category==="all"?null:S.category;
@@ -935,8 +941,11 @@ async function fetchWallsRepo(page){
     const tokens=q.split(/\s+/).filter(Boolean);
     paths=paths.filter(p=>tokens.every(t=>p.toLowerCase().includes(t)));
   }
-  // stable deterministic shuffle so pages vary without duplicates
+  if(S.color) paths=paths.filter(p=>matchesColor(p));
+  // stable deterministic shuffle so pages vary without duplicates;
+  // ↻ Refresh shifts the window round-robin so a new mix shows up
   paths=paths.map(p=>({p,k:hashStr(p)})).sort((a,b)=>a.k-b.k).map(x=>x.p);
+  if(S.shake&&paths.length) { const o=(S.shake*20)%paths.length; paths=paths.slice(o).concat(paths.slice(0,o)); }
   return paths.slice((page-1)*20,page*20).map(p=>({
     id:"gw-"+hashStr(p),
     title:(p.split("/").pop()||"Wallpaper").replace(/\.\w+$/,"").replace(/_/g," "),
@@ -1029,6 +1038,28 @@ function matchesOrient(it){
   if(!it.w||!it.h) return true; // unknown yet
   return S.orient==="desktop" ? it.w>=it.h : it.h>=it.w;
 }
+/* ---------- color matching (client-side) ----------
+   Most wallpaper files carry their color in the name ("blue-shapes.png",
+   "dark-forest.jpg") and most keyless APIs offer no color search — so the
+   color picker filters by name/keyword across sources instead of trusting
+   an API param (WallWidgy's color param actually 404s the whole request). */
+const COLOR_SYNS={
+  blue:["blue","navy","azure","cerulean","teal"],
+  red:["red","crimson","scarlet"],
+  green:["green","emerald","mint","jade"],
+  purple:["purple","violet","lavender","indigo","plum"],
+  pink:["pink","rose","magenta","fuchsia","salmon"],
+  orange:["orange","coral","peach","amber","bronze","burnt"],
+  yellow:["yellow","gold","honey","lemon"],
+  black:["black","dark","midnight","obsidian","dusk"],
+  white:["white","ivory","cream","pale","snow"]
+};
+function matchesColor(name){
+  if(!S.color) return true;
+  const hay=String(name||"").replace(/[-_.]/g," ").toLowerCase();
+  const words=COLOR_SYNS[S.color]||[S.color];
+  return words.some(w=>hay.includes(w));
+}
 
 /* render the batch as soon as sources answer or ~3.5s passes; stragglers
    park in the carry buffer so nothing is lost */
@@ -1053,8 +1084,12 @@ async function fetchPage(page){
     names.forEach((name,i)=>jobs[i].then(()=>{
       if(token!==S.loadToken || !results[i] || !results[i].length) return;
       S.carry.push(...results[i].filter(matchesOrient));
-      // early session: surface the delayed content right away
-      setTimeout(()=>{ if(!S.loading && S.items.length<60) maybeLoadMore(); },200);
+      // if the grid looks sparse (heavy filtering), surface watching content once
+      setTimeout(()=>{
+        if(S.loading || S.done) return;
+        const shown=document.querySelectorAll(".card:not(.skel)").length;
+        if(S.items.length<40 && shown<28) maybeLoadMore();
+      },200);
     }));
   }
   if(page===1 && !S.query) all = [...CUSTOM, ...all.filter(x=>x.source!=="Link")];
@@ -1119,7 +1154,15 @@ function cardHTML(item,fast){
 
 function wireCard(card,item){
   const img=card.querySelector("img");
-  const onImg=()=>{img.classList.add("loaded");card.querySelector(".shimmer")?.remove();if(!item.w&&img.naturalWidth>0){item.w=img.naturalWidth;item.h=img.naturalHeight;card.querySelector(".res-tag").textContent=img.naturalWidth+"×"+img.naturalHeight;}};
+  const onImg=()=>{
+    if(img.naturalWidth>0){ item.w=img.naturalWidth; item.h=img.naturalHeight; }
+    // decoded size is the truth: if it's the wrong shape for the chosen
+    // Desktop/Phone filter, remove the card (sources with unknown size
+    // pre-fetch, like wallwidgy / walls, get filtered here instead)
+    if(!matchesOrient(item)){ card.remove(); iAmEmpty(); return; }
+    img.classList.add("loaded");card.querySelector(".shimmer")?.remove();
+    const rt=card.querySelector(".res-tag"); if(rt) rt.textContent=img.naturalWidth+"×"+img.naturalHeight;
+  };
   img.onload=onImg;
   img.onerror=()=>{card.remove(); iAmEmpty();};
   const proxied=img.dataset.srcprox;
@@ -1318,6 +1361,23 @@ function onHash(){
   if(next!==S.route){ S.route=next; buildChips(); resetAndLoad(); }
   window.scrollY||window.scrollTo({top:0});
 }
+
+/* ↻ Refresh — same view, fresh mix */
+el("refreshBtn").onclick=async ()=>{
+  if(S.loading) return;
+  const icon=el("refreshIcon");
+  icon.style.transition="none";
+  icon.animate(
+    [{transform:"rotate(0deg)"},{transform:"rotate(360deg)"}],
+    {duration:700,easing:"cubic-bezier(.55,.06,.35,.95)"}
+  );
+  S.shake++;                                    // shift what each source samples
+  S.wwBase=Math.floor(Math.random()*WW_CATS.length); // re-randomize WallWidgy browsing
+  toast("Loading a fresh mix… ↻");
+  window.scrollTo({top:0,behavior:"smooth"});
+  if(S.route!=="home"){ resetAndLoad(); return; } // favorites: just re-render
+  await resetAndLoad();
+};
 
 el("randomBtn").onclick=async ()=>{
   if(S.loading) return;
