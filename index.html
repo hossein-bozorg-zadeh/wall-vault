@@ -109,10 +109,51 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .results-head{
   display:flex;align-items:baseline;gap:.8rem;margin:.6rem 0 1rem;flex-wrap:wrap;
 }
-/* organized: results head + tidy chips */
+/* ---------- category menu ---------- */
+.cat-menu-wrap{position:relative;display:inline-block}
+.cat-btn{
+  display:inline-flex;align-items:center;gap:.45rem;
+  padding:.45rem .9rem;border-radius:999px;border:1px solid var(--accent);
+  background:var(--card);color:var(--text);font-size:.85rem;font-weight:600;transition:.18s;
+  min-width:120px;justify-content:space-between;
+}
+.cat-btn:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(109,92,255,.14)}
+.cat-menu-wrap.open .cat-btn{border-color:var(--accent);background:var(--accent);color:#fff}
+.cat-menu-wrap.open .cat-btn svg{transform:rotate(180deg)}
+.cat-panel{
+  position:absolute;top:calc(100% + 8px);left:0;z-index:80;
+  width:340px;max-width:86vw;max-height:420px;overflow-y:auto;
+  background:var(--bg2);border:1px solid var(--line);border-radius:16px;
+  box-shadow:0 18px 50px rgba(0,0,0,.4);padding:.5rem;
+  opacity:0;transform:translateY(-6px) scale(.98);pointer-events:none;transition:.16s;
+}
+.cat-menu-wrap.open .cat-panel{opacity:1;transform:none;pointer-events:auto}
+.cat-group-label{
+  font-size:.66rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--muted);padding:.5rem .6rem .3rem;
+}
+.cat-opts{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.cat-opt{
+  display:flex;justify-content:space-between;align-items:center;gap:.4rem;
+  padding:.5rem .65rem;border-radius:9px;font-size:.83rem;text-align:left;transition:.14s;
+}
+.cat-opt:hover{background:var(--card-hover)}
+.cat-opt.on{background:rgba(109,92,255,.16);color:var(--accent);font-weight:600}
+.cat-opt.dim{opacity:.45;cursor:not-allowed}
+.cat-opt .lock{font-size:.7rem}
+@media(max-width:640px){
+  .cat-opts{grid-template-columns:1fr}
+  .cat-panel{left:-2px;width:min(320px,92vw)}
+}
+
+/* ---------- organized: results head + tidy chips ---------- */
 .results-head h2{font-size:1.25rem;letter-spacing:-.02em}
 .res-tag{opacity:1}
 #loadMoreBtn{margin:0}
+
+/* card motion polish */
+.card{animation:cardin .35s ease both}
+@keyframes cardin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 .results-head .count{color:var(--muted);font-size:.85rem}
 .results-head .spacer{flex:1}
 .btn{
@@ -374,10 +415,10 @@ footer{
 </header>
 
 <div class="filterbar" id="filterbar">
-  <div class="chips-row" id="catRow"><span class="row-label">Category</span></div>
-  <div class="chips-row" id="colorRow"><span class="row-label">Color</span></div>
-  <div class="chips-row" id="orientRow">
-    <span class="row-label">Layout</span>
+  <div class="chips-row">
+    <span class="row-label">Category</span>
+    <div class="cat-menu-wrap" id="catMenu"></div>
+    <span class="row-label" style="margin-left:.6rem">Layout</span>
     <div class="seg" id="orientSeg">
       <button data-orient="all" class="active">All</button>
       <button data-orient="desktop">Desktop</button>
@@ -385,6 +426,7 @@ footer{
     </div>
     <span class="hint" id="sourceStatus"></span>
   </div>
+  <div class="chips-row" id="colorRow"><span class="row-label">Color</span></div>
 </div>
 
 <main>
@@ -1012,6 +1054,7 @@ async function resetAndLoad(){
     loader.style.display="none"; grid.innerHTML="";
     renderGrid(FAVORITES,false); updateResultHead(); renderSourceStatus(); return;
   }
+  grid.innerHTML=""; // clear stale cards from any previous filter
   updateResultHead();
   await loadMore(true);
 }
@@ -1040,8 +1083,6 @@ async function loadMore(force){
   }finally{
     S.loading=false; loader.style.display="none";
     document.querySelectorAll('.card.skel').forEach(n=>n.remove());
-    // if the page still looks short after this batch, keep filling once more
-    setTimeout(()=>{ if(!S.loading) maybeLoadMore(); }, 350);
   }
 }
 el("loadMoreBtn").onclick=loadMore;
@@ -1064,26 +1105,63 @@ function supportedCategories(){
   return CATEGORIES.filter(c=>set.has(c));
 }
 
+/* ---------- category dropdown menu ---------- */
+const CAT_GROUPS=[
+  ["Browse — always on",["all","abstract","anime","architecture","art","cars","minimal","nature","tech","dark","textures"]],
+  ["Deep search — needs a free key ⚙️",["space","city","ocean","forest","mountains","animals","flowers","neon","vaporwave"]]
+];
+let catPanelOpen=false;
 function buildChips(){
-  const catRow=el("catRow"), colorRow=el("colorRow");
-  const cats = supportedCategories();
-  catRow.innerHTML='<span class="row-label">Category</span>'+
-    cats.map(c=>`<button class="chip ${S.category===c?"active":""}" data-cat="${c}">${c==="all"?"All":c[0].toUpperCase()+c.slice(1)}</button>`).join("");
-  catRow.querySelectorAll("[data-cat]").forEach(b=>b.onclick=()=>{
-    S.category=b.dataset.cat; S.query=""; el("searchInput").value=""; el("clearQ").style.display="none";
-    buildChips(); resetAndLoad();
-  });
-  colorRow.innerHTML='<span class="row-label">Color</span>'+
-    `<button class="chip ${!S.color?"active":""}" data-col="">Any</button>`+
-    COLORS.map(([n,hex])=>`<button class="color-dot ${S.color===n?"active":""}" data-col="${n}" style="background:${hex}" title="${n}"></button>`).join("");
-  colorRow.querySelectorAll("[data-col]").forEach(b=>b.onclick=()=>{
-    S.color=b.dataset.col; buildChips(); resetAndLoad();
-  });
+  buildCategoryMenu(); buildColorChips();
   document.querySelectorAll("#orientSeg [data-orient]").forEach(b=>{
     b.classList.toggle("active",S.orient===b.dataset.orient);
     b.onclick=()=>{ S.orient=b.dataset.orient; buildChips(); resetAndLoad(); };
   });
 }
+function buildColorChips(){
+  const colorRow=el("colorRow");
+  colorRow.innerHTML='<span class="row-label">Color</span>'+
+    `<button class="chip ${!S.color?"active":""}" data-col="">Any</button>`+
+    COLORS.map(([n,hex])=>`<button class="color-dot ${S.color===n?"active":""}" data-col="${n}" style="background:${hex}" title="${n}"></button>`).join("");
+  colorRow.querySelectorAll("[data-col]").forEach(b=>b.onclick=()=>{
+    S.color=b.dataset.col; buildColorChips(); resetAndLoad();
+  });
+}
+function buildCategoryMenu(){
+  const wrap=el("catMenu");
+  const supported=new Set(supportedCategories());
+  const cap=c=>c==="all"?"All":c[0].toUpperCase()+c.slice(1);
+  const groups=CAT_GROUPS.map(([label,list])=>{
+    const opts=list.map(c=>{
+      const on=supported.has(c);
+      return `<button class="cat-opt ${S.category===c?"on":""} ${on?"":"dim"}" data-cat="${c}" ${on?"":"disabled"}>
+        <span>${cap(c)}</span>${on?"":'<span class="lock">🔒</span>'}</button>`;
+    }).join("");
+    return `<div class="cat-group"><div class="cat-group-label">${label}</div><div class="cat-opts">${opts}</div></div>`;
+  }).join("");
+  wrap.innerHTML=`
+    <button class="cat-btn" id="catToggle">
+      <span>${esc(cap(S.category))}</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" style="transition:.2s"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <div class="cat-panel" id="catPanel">${groups}</div>`;
+  const btn=el("catToggle"), panel=el("catPanel");
+  btn.onclick=e=>{ e.stopPropagation(); catPanelOpen=!catPanelOpen; wrap.classList.toggle("open",catPanelOpen); };
+  panel.onclick=e=>e.stopPropagation();
+  wrap.querySelectorAll(".cat-opt:not(.dim)").forEach(b=>b.onclick=()=>{
+    S.category=b.dataset.cat; S.query=""; el("searchInput").value=""; el("clearQ").style.display="none";
+    catPanelOpen=false; wrap.classList.remove("open");
+    buildChips(); resetAndLoad();
+  });
+}
+/* close the menu when clicking anywhere else or hitting Escape */
+addEventListener("click",e=>{
+  const wrap=el("catMenu");
+  if(catPanelOpen && wrap && !wrap.contains(e.target)){ catPanelOpen=false; wrap.classList.remove("open"); }
+});
+addEventListener("keydown",e=>{
+  if(e.key==="Escape" && catPanelOpen){ catPanelOpen=false; el("catMenu").classList.remove("open"); }
+});
 
 /* search */
 el("searchInput").addEventListener("input",e=>{
