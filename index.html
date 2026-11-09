@@ -109,7 +109,10 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .results-head{
   display:flex;align-items:baseline;gap:.8rem;margin:.6rem 0 1rem;flex-wrap:wrap;
 }
+/* organized: results head + tidy chips */
 .results-head h2{font-size:1.25rem;letter-spacing:-.02em}
+.res-tag{opacity:1}
+#loadMoreBtn{margin:0}
 .results-head .count{color:var(--muted);font-size:.85rem}
 .results-head .spacer{flex:1}
 .btn{
@@ -163,6 +166,21 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 }
 .card:hover .res-tag{opacity:1}
 .skeleton-note{display:none}
+
+/* ---------- sentinel / footer / skeleton ---------- */
+#sentinel{height:1px;width:100%}
+.card.skel{pointer-events:none;height:250px}
+footer{
+  border-top:1px solid var(--line);margin-top:2rem;
+  background:var(--bg2);
+}
+.foot-inner{
+  max-width:1500px;margin:0 auto;padding:1.2rem;
+  display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;
+  color:var(--muted);font-size:.78rem;
+}
+.foot-brand{font-weight:800;color:var(--text)}
+.foot-link{color:var(--accent);text-decoration:none;font-weight:600;margin-left:auto}
 
 /* ---------- empty / loader / footer ---------- */
 .empty{
@@ -377,6 +395,7 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
     <button class="btn" id="loadMoreBtn" style="display:none">Load more ↓</button>
   </div>
   <div class="grid" id="grid"></div>
+  <div id="sentinel" aria-hidden="true"></div>
   <div class="empty" id="empty" style="display:none">
     <div class="big">🌌</div>
     <h3 id="emptyTitle">Nothing here yet</h3>
@@ -385,6 +404,14 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
   <div class="loader" id="loader"><div class="spinner"></div><span>Gathering wallpapers…</span></div>
   <div id="endNote"></div>
 </main>
+
+<footer>
+  <div class="foot-inner">
+    <span class="foot-brand">🌌 WallVault</span>
+    <span class="foot-sources">WallWidgy · Lorem Picsum · Wikimedia Commons · walls repo (GitHub) · Openverse · your Pexels/Unsplash keys</span>
+    <a class="foot-link" href="https://github.com/hossein-bozorg-zadeh/wall-vault" target="_blank" rel="noopener">source ↗</a>
+  </div>
+</footer>
 
 <!-- ===================== DETAIL MODAL ===================== -->
 <div class="modal" id="detailModal">
@@ -542,6 +569,7 @@ const S = {
   seen:new Set(),
   loading:false,
   loadToken:0,                  // discard stale page loads when filters change
+  carry:[],                     // extra items fetched but not yet shown (fills the next 40-batch)
   done:false,                   // no more pages
   preview:{ scale:1, dx:0, dy:0, device:"phone", naturalW:0, naturalH:0 },
 };
@@ -610,7 +638,10 @@ const WW_CATS = ["abstract","anime","architecture","art","cars","minimal","natur
 async function fetchWallwidgy(page){
   const cats = (S.query)
     ? []
-    : (S.category==="all" ? (page===1 ? WW_CATS : []) : [S.category]);
+    : (S.category==="all"
+        // browse mode: rotate through 2 categories per batch → ~20 items
+        ? (()=>{const off=((page-1)*2)%WW_CATS.length; return WW_CATS.slice(off,off+2);})()
+        : [S.category]);
   if(!cats.length) return [];
   const one = async (cat)=>{
     const p = new URLSearchParams({ count:"10" });
@@ -706,7 +737,7 @@ async function fetchWikimedia(page){
 async function fetchPicsum(page){
   if(S.route!=="home") return [];
   if(S.query || S.category!=="all") return []; // browse-only source
-  const data = await jget(`https://picsum.photos/v2/list?page=${page}&limit=24`);
+  const data = await jget(`https://picsum.photos/v2/list?page=${page}&limit=20`);
   return (data||[]).map((im,ix)=>({
     id:"pc-"+im.id,
     title: "Photo "+im.id,
@@ -763,7 +794,7 @@ async function fetchWallsRepo(page){
   }
   // stable deterministic shuffle so pages vary without duplicates
   paths=paths.map(p=>({p,k:hashStr(p)})).sort((a,b)=>a.k-b.k).map(x=>x.p);
-  return paths.slice((page-1)*40,page*40).map(p=>({
+  return paths.slice((page-1)*20,page*20).map(p=>({
     id:"gw-"+hashStr(p),
     title:(p.split("/").pop()||"Wallpaper").replace(/\.\w+$/,"").replace(/_/g," "),
     author:"dharmx/walls · GitHub",
@@ -777,7 +808,7 @@ async function fetchWallsRepo(page){
 /* --- Pexels --- */
 async function fetchPexels(page,searchOnly){
   if(!haveKey.pexels()) return [];
-  const per="24";
+  const per="12";
   let url;
   const color = S.color||"";
   const orient = S.orient==="mobile"?"portrait":S.orient==="desktop"?"landscape":"";
@@ -809,7 +840,7 @@ async function fetchPexels(page,searchOnly){
 /* --- Unsplash --- */
 async function fetchUnsplash(page,searchOnly){
   if(!haveKey.unsplash()) return [];
-  const per="24";
+  const per="12";
   const orient = S.orient==="mobile"?"portrait":S.orient==="desktop"?"landscape":"";
   const listUrl = q => UNSPLASH_API + q + (q.includes("?")?"&":"?") + new URLSearchParams({
     per_page:per, page:String(page),
@@ -870,9 +901,19 @@ async function fetchPage(page){
   let all = (await Promise.all(jobs)).flat();
   if(page===1 && !S.query) all = [...CUSTOM, ...all.filter(x=>x.source!=="Link")];
   all = all.filter(matchesOrient);
-  // dedupe across sources
-  const fresh = all.filter(x=>{ if(S.seen.has(x.full)) return false; S.seen.add(x.full); return true; });
-  return fresh;
+  /* fill exactly 40 per batch; items beyond 40 are carried to the next
+     batch instead of being refetched — nothing is wasted or lost */
+  const BATCH=40, out=[];
+  const pool=[...S.carry, ...all];
+  let i=0;
+  for(; i<pool.length && out.length<BATCH; i++){
+    const x=pool[i];
+    if(S.seen.has(x.full)) continue;
+    S.seen.add(x.full);
+    out.push(x);
+  }
+  S.carry = out.length>=BATCH ? pool.slice(i+1) : [];
+  return out;
 }
 
 /* =========================================================
@@ -965,7 +1006,8 @@ function iAmEmpty(){ // called when cards error out
    LOAD FLOW
    ========================================================= */
 async function resetAndLoad(){
-  S.page=1; S.items=[]; S.seen=new Set(); S.done=false; S.loadToken++;
+  S.page=1; S.items=[]; S.seen=new Set(); S.done=false; S.loadToken++; S.carry=[];
+  document.querySelectorAll('.card.skel').forEach(n=>n.remove());
   if(S.route==="favorites"){
     loader.style.display="none"; grid.innerHTML="";
     renderGrid(FAVORITES,false); updateResultHead(); renderSourceStatus(); return;
@@ -978,6 +1020,7 @@ async function loadMore(force){
   if(S.route==="favorites"){ S.done=true; return; }
   const token=S.loadToken;
   S.loading=true; loader.style.display="flex"; empty.style.display="none";
+  for(let i=0;i<8;i++) grid.insertAdjacentHTML("beforeend",'<article class="card skel"><div class="shimmer"></div></article>');
   try{
     const fresh = await fetchPage(S.page);
     if(token!==S.loadToken) return; // a newer filter/load took over — drop stale results
@@ -996,6 +1039,9 @@ async function loadMore(force){
     S.done=true; updateResultHead();
   }finally{
     S.loading=false; loader.style.display="none";
+    document.querySelectorAll('.card.skel').forEach(n=>n.remove());
+    // if the page still looks short after this batch, keep filling once more
+    setTimeout(()=>{ if(!S.loading) maybeLoadMore(); }, 350);
   }
 }
 el("loadMoreBtn").onclick=loadMore;
@@ -1450,12 +1496,15 @@ buildChips();
 renderFavCount();
 onHash();
 resetAndLoad();
-/* infinite scroll */
-const io=new IntersectionObserver(entries=>{
-  if(entries[0].isIntersecting && !S.done && !S.loading && S.route==="home" && S.items.length) loadMore();
-},{rootMargin:"900px"});
-new MutationObserver(()=>{ const lm=el("loadMoreBtn"); if(lm.style.display!=="none") io.observe(lm); })
-  .observe(el("loadMoreBtn"),{attributes:true});
+/* infinite scroll — load the next 40 when the user reaches the end of the page */
+const sentinel=el("sentinel");
+function nearBottom(){ return window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 800; }
+function maybeLoadMore(){
+  if(!S.loading && !S.done && S.route==="home" && S.items.length && nearBottom()) loadMore();
+}
+addEventListener("scroll", maybeLoadMore, {passive:true});
+addEventListener("resize", maybeLoadMore, {passive:true});
+addEventListener("beforeunload",()=>{ sentinel=null; });
 </script>
 </body>
 </html>
