@@ -169,16 +169,18 @@ main{max-width:1500px;margin:0 auto;padding:1rem 1.2rem 4rem}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
 .btn.primary:hover{filter:brightness(1.12);color:#fff}
 .grid{
-  columns:6 var(--col-min);column-gap:14px;
+  display:flex;gap:14px;align-items:flex-start;
 }
+.grid .mcol{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:14px}
 .grid.uniform{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--col-min),1fr));column-gap:12px;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--col-min),1fr));gap:12px;
 }
+.grid.uniform .mcol{display:contents}
 .grid.uniform .card{margin:0;aspect-ratio:3/4;position:relative}
 .grid.uniform .card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .card{
-  break-inside:avoid;margin-bottom:14px;position:relative;border-radius:var(--card-rad);
-  overflow:hidden;background:var(--card);cursor:pointer;
+  break-inside:avoid;position:relative;border-radius:var(--card-rad);
+  overflow:hidden;background:var(--card);cursor:pointer;width:100%;
   box-shadow:0 3px 10px rgba(0,0,0,.25);transition:transform .2s, box-shadow .2s;
 }
 .card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
@@ -373,8 +375,9 @@ footer{
   .filterbar{gap:.5rem}
 }
 @media(max-width:640px){
-  .grid{columns:2 150px;column-gap:10px}
-  .card{margin-bottom:10px}
+  :root{--col-min:150px}
+  .grid{gap:10px}
+  .grid .mcol{gap:10px}
   .header-inner{padding:.6rem .8rem;gap:.5rem}
   .brand{order:1}
   .header-actions{order:2;margin-left:auto}
@@ -393,7 +396,7 @@ footer{
   .sheet .side{padding:1rem;max-height:50%}
 }
 @media(max-width:400px){
-  .grid{columns:2 120px}
+  :root{--col-min:120px}
   .icon-btn{width:36px;height:36px}
   .device-wrap-hidden{display:none}
 }
@@ -657,6 +660,7 @@ const S = {
   done:false,                   // no more pages
   shake:0,                      // bumped by ↻ Refresh — shifts which content sources sample
   wwBase:0,                     // WallWidgy browse rotation start (re-randomized on refresh)
+  order:[],                     // render order of card keys (masonry relayout bookkeeping)
   preview:{ scale:1, dx:0, dy:0, device:"phone", naturalW:0, naturalH:0 },
 };
 const el = id => document.getElementById(id);
@@ -1084,12 +1088,6 @@ async function fetchPage(page){
     names.forEach((name,i)=>jobs[i].then(()=>{
       if(token!==S.loadToken || !results[i] || !results[i].length) return;
       S.carry.push(...results[i].filter(matchesOrient));
-      // if the grid looks sparse (heavy filtering), surface watching content once
-      setTimeout(()=>{
-        if(S.loading || S.done) return;
-        const shown=document.querySelectorAll(".card:not(.skel)").length;
-        if(S.items.length<40 && shown<28) maybeLoadMore();
-      },200);
     }));
   }
   if(page===1 && !S.query) all = [...CUSTOM, ...all.filter(x=>x.source!=="Link")];
@@ -1174,12 +1172,57 @@ function wireCard(card,item){
   };
 }
 
+/* ---------- JS masonry ----------
+   CSS `columns` re-balances the whole grid on every append, which made new
+   batches pop up in random mid-grid spots and broke the "load next at the
+   bottom of the page" flow. Instead: fixed flex-columns, cards join
+   round-robin, so each appended batch always lands at the bottom. */
+const M={cols:0,next:0,nodes:new Map()}; // nodes: key → live card element
+function masonryColCount(){
+  const min=parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--col-min"))||260;
+  const w=grid.clientWidth||window.innerWidth||1200;
+  return Math.max(1,Math.min(10,Math.floor((w+14)/(min+14))));
+}
+function masonryReset(){
+  M.next=0; M.cols=0; M.nodes.forEach((nd,k)=>{ if(!nd.isConnected) M.nodes.delete(k); });
+}
+function relayoutMasonry(force){
+  if(AP.view==="uniform") return;
+  const n=masonryColCount();
+  let cols=[...grid.children].filter(c=>c.classList.contains("mcol"));
+  if(!force && cols.length===n) return;
+  const keep=[...M.nodes.values()].filter(c=>c.isConnected)
+    .sort((a,b)=>S.order.indexOf(a.dataset.key)-S.order.indexOf(b.dataset.key));
+  grid.innerHTML="";
+  cols=[];
+  for(let i=0;i<n;i++){ const d=document.createElement("div"); d.className="mcol"; grid.appendChild(d); cols.push(d); }
+  keep.forEach((c,i)=>cols[i%cols.length].appendChild(c));
+  M.cols=cols.length; M.next=keep.length;
+}
+function placeCard(nd){
+  if(AP.view==="uniform"){ grid.appendChild(nd); return; }
+  let cols=[...grid.children].filter(c=>c.classList.contains("mcol"));
+  if(!cols.length || cols.length!==masonryColCount()){ relayoutMasonry(true); cols=[...grid.children]; }
+  (cols[M.next % cols.length]).appendChild(nd);
+  M.next++;
+}
+
 function renderGrid(items,append){
-  const html = items.map((item,i)=>cardHTML(item,!append&&i<12)).join("");
-  if(append){ grid.insertAdjacentHTML("beforeend",html); }
-  else { grid.innerHTML=html; }
-  [...grid.children].filter(c=>c.classList.contains("card")).forEach(card=>{
-    const item = (S.route==="favorites"?FAVORITES:S.items).find(i=>i.key===card.dataset.key);
+  const pairs=items.map((item,i)=>{
+    const t=document.createElement("template");
+    t.innerHTML=cardHTML(item,!append&&i<12).trim();
+    return {item, nd:t.content.firstElementChild};
+  });
+  if(!append){ grid.innerHTML=""; masonryReset(); }
+  pairs.forEach(p=>{
+    placeCard(p.nd);
+    S.order.push(p.item.key);
+    M.nodes.set(p.item.key,p.nd);
+  });
+  [...grid.querySelectorAll(".card:not(.skel)")].forEach(card=>{
+    if(card.dataset.wired) return;
+    card.dataset.wired="1";
+    const item=(S.route==="favorites"?FAVORITES:S.items).find(i=>i.key===card.dataset.key);
     if(item) wireCard(card,item);
   });
   renderSourceStatus();
@@ -1213,7 +1256,7 @@ function iAmEmpty(){ // called when cards error out
    LOAD FLOW
    ========================================================= */
 async function resetAndLoad(){
-  S.page=1; S.items=[]; S.seen=new Set(); S.done=false; S.loadToken++; S.carry=[];
+  S.page=1; S.items=[]; S.seen=new Set(); S.done=false; S.loadToken++; S.carry=[]; S.order=[]; masonryReset();
   document.querySelectorAll('.card.skel').forEach(n=>n.remove());
   if(S.route==="favorites"){
     loader.style.display="none"; grid.innerHTML="";
@@ -1228,7 +1271,11 @@ async function loadMore(force){
   if(S.route==="favorites"){ S.done=true; return; }
   const token=S.loadToken;
   S.loading=true; loader.style.display="flex"; empty.style.display="none";
-  for(let i=0;i<8;i++) grid.insertAdjacentHTML("beforeend",'<article class="card skel"><div class="shimmer"></div></article>');
+  for(let i=0;i<8;i++){
+    const s=document.createElement("article"); s.className="card skel";
+    s.innerHTML='<div class="shimmer"></div>';
+    placeCard(s);
+  }
   try{
     const fresh = await fetchPage(S.page);
     if(token!==S.loadToken) return; // a newer filter/load took over — drop stale results
@@ -1770,6 +1817,19 @@ function applyAppearance(){
   document.documentElement.style.setProperty("--accent-rgb",
     acc[0].match(/^#(..)(..)(..)$/).slice(1).map(h=>parseInt(h,16)).join(","));
   el("grid").classList.toggle("uniform",AP.view==="uniform");
+  adoptLayout();
+}
+/* when the view style changes, re-home the already-rendered cards
+   (moving DOM nodes keeps every loaded thumbnail) */
+function adoptLayout(){
+  if(AP.view==="uniform"){
+    const cards=[...M.nodes.values()].filter(c=>c.isConnected)
+      .sort((a,b)=>S.order.indexOf(a.dataset.key)-S.order.indexOf(b.dataset.key));
+    grid.innerHTML="";
+    cards.forEach(c=>grid.appendChild(c));
+  } else {
+    relayoutMasonry(true);
+  }
 }
 function buildAppearanceUI(){
   const paint=()=>{ // set active states
@@ -1807,7 +1867,7 @@ function maybeLoadMore(){
   if(!S.loading && !S.done && S.route==="home" && S.items.length && nearBottom()) loadMore();
 }
 addEventListener("scroll", maybeLoadMore, {passive:true});
-addEventListener("resize", maybeLoadMore, {passive:true});
+addEventListener("resize", debounce(()=>{ relayoutMasonry(); maybeLoadMore(); },150), {passive:true});
 addEventListener("beforeunload",()=>{ sentinel=null; });
 </script>
 </body>
